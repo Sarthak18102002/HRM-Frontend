@@ -1,12 +1,13 @@
-export const getUserIdFromToken = () => {
-  const token = localStorage.getItem("authToken");
-  if (!token) return null;
+import { jwtDecode } from "jwt-decode"; // ✅ Correct import for named export
 
+export const getUserRoles = () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) return [];
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.userId; // make sure this matches the claim in your backend token
+    const decoded = jwtDecode(token); // ✅ works now
+    return decoded?.roles || [];
   } catch (err) {
-    console.error("Invalid token", err);
-    return null;
+    console.error("Token decode error:", err);
+    return [];
   }
 };

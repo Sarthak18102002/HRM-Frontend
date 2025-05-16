@@ -1,394 +1,242 @@
-// import React, { useEffect, useState } from "react";
-// import axiosInstance from "../utils/axiosInstance";
-
-// const UserRoles = () => {
-//   const [users, setUsers] = useState([]);
-//   const [roles, setRoles] = useState([]);
-//   const [userRoles, setUserRoles] = useState([]);
-//   const [formData, setFormData] = useState({
-//     userId: "",
-//     roleId: ""
-//   });
-//   const [editUserId, setEditUserId] = useState(null);
-//   const [isEdit, setIsEdit] = useState(false);
-//   const [success, setSuccess] = useState("");
-//   const [error, setError] = useState("");
-
-//   const fetchAllData = async () => {
-//     try {
-//       // Fetch users, roles, and user-role mappings from the backend
-//       const [userRes, roleRes, userRoleRes] = await Promise.all([
-//        axiosInstance.get("/admin/users"), // Fetch all users
-//       axiosInstance.get("/roles"), // Fetch all roles
-//       axiosInstance.get("/admin/user-roles") // Fetch all user-role assignments
-//       ]);
-//       setUsers(userRes.data.data || []);
-//       setRoles(roleRes.data.data || []);
-//       setUserRoles(userRoleRes.data.data || []);
-//     } catch (err) {
-//       console.error("Error fetching data", err);
-//       setError("Failed to load data.");
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchAllData();
-//   }, []);
-
-//   const handleChange = (e) => {
-//     setFormData((prev) => ({
-//       ...prev,
-//       [e.target.name]: e.target.value
-//     }));
-//   };
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     try {
-//       if (isEdit) {
-//         // Update role for the user
-//         await axiosInstance.put("/admin/users/update-role", {
-//           userId: editUserId,
-//           roleId: formData.roleId // The roleId will be updated
-//         });
-//         setSuccess("User role updated successfully.");
-//       } else {
-//         // Assign role to user
-//         await axiosInstance.post("/admin/users/assign-role", {
-//           userId: formData.userId,
-//           roleId: formData.roleId // The roleId will be assigned
-//         });
-//         setSuccess("Role assigned to user successfully.");
-//       }
-//       setFormData({ userId: "", roleId: "" });
-//       setIsEdit(false);
-//       setEditUserId(null);
-//       fetchAllData();
-//     } catch (err) {
-//       console.error("Error submitting form", err);
-//       setError("Operation failed.");
-//     }
-//   };
-
-//   const handleEdit = (roleEntry) => {
-//     setFormData({
-//       userId: roleEntry.userId,
-//       roleId: roleEntry.roleId
-//     });
-//     setEditUserId(roleEntry.userId);
-//     setIsEdit(true);
-//   };
-
-//   const handleDelete = async (roleEntry) => {
-//     try {
-//       // Delete role from user
-//       await axiosInstance.delete("/admin/users/remove-role", {
-//         params: {
-//           userId: roleEntry.userId,
-//           roleId: roleEntry.roleId
-//         }
-//       });
-//       setSuccess("Role removed from user.");
-//       fetchAllData();
-//     } catch (err) {
-//       console.error("Delete failed", err);
-//       setError("Failed to remove role.");
-//     }
-//   };
-
-//   return (
-//     <div className="container mx-auto p-6">
-//       <h1 className="text-3xl font-bold mb-6">User Role Management</h1>
-
-//       {success && <p className="text-green-600 mb-4">{success}</p>}
-//       {error && <p className="text-red-600 mb-4">{error}</p>}
-
-//       <form
-//         onSubmit={handleSubmit}
-//         className="bg-white p-6 rounded shadow-md max-w-md mx-auto mb-8"
-//       >
-//         <h2 className="text-xl font-semibold mb-4">{isEdit ? "Edit Role" : "Assign Role"}</h2>
-
-//         <select
-//           name="userId"
-//           value={formData.userId}
-//           onChange={handleChange}
-//           required={!isEdit}
-//           disabled={isEdit}
-//           className="w-full p-2 mb-4 border rounded"
-//         >
-//           <option value="">Select User</option>
-//           {users.map((user) => (
-//             <option key={user.userId} value={user.userId}>
-//               {user.username} ({user.userId})
-//             </option>
-//           ))}
-//         </select>
-
-//         <select
-//           name="roleId"
-//           value={formData.roleId}
-//           onChange={handleChange}
-//           required
-//           className="w-full p-2 mb-4 border rounded"
-//         >
-//           <option value="">Select Role</option>
-//           {roles.map((role) => (
-//             <option key={role.roleId} value={role.roleId}>
-//               {role.roleName} ({role.roleId})
-//             </option>
-//           ))}
-//         </select>
-
-//         <button
-//           type="submit"
-//           className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
-//         >
-//           {isEdit ? "Update Role" : "Assign Role"}
-//         </button>
-//       </form>
-
-//       <div className="bg-white p-6 rounded shadow-md">
-//         <h2 className="text-xl font-semibold mb-4">Assigned Roles</h2>
-//         {userRoles.length === 0 ? (
-//           <p>No roles assigned.</p>
-//         ) : (
-//           <ul className="space-y-4">
-//             {userRoles.map((ur, index) => {
-//               const user = users.find((u) => u.userId === ur.userId);
-//               const role = roles.find((r) => r.roleId === ur.roleId);
-//               return (
-//                 <li
-//                   key={index}
-//                   className="flex justify-between items-center border-b pb-2"
-//                 >
-//                   <div>
-//                     <p>
-//                       <strong>{user?.username}</strong> - {role?.roleName}
-//                     </p>
-//                     <p className="text-sm text-gray-500">
-//                       User ID: {ur.userId}, Role ID: {ur.roleId}
-//                     </p>
-//                   </div>
-//                   <div className="space-x-2">
-//                     <button
-//                       className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-//                       onClick={() => handleEdit(ur)}
-//                     >
-//                       Edit
-//                     </button>
-//                     <button
-//                       className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-//                       onClick={() => handleDelete(ur)}
-//                     >
-//                       Delete
-//                     </button>
-//                   </div>
-//                 </li>
-//               );
-//             })}
-//           </ul>
-//         )}
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default UserRoles;
-
-
-
-
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../utils/axiosInstance";
 
 const UserRoles = () => {
-  const [users, setUsers] = useState([]);
-  const [roles, setRoles] = useState([]);
   const [userRoles, setUserRoles] = useState([]);
-  const [formData, setFormData] = useState({
-    userId: "",
-    roleId: ""
-  });
-  const [editUserId, setEditUserId] = useState(null);
-  const [isEdit, setIsEdit] = useState(false);
-  const [success, setSuccess] = useState("");
+  const [allUsers, setAllUsers] = useState([]);
+  const [allRoles, setAllRoles] = useState([]);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [formData, setFormData] = useState({
+    id: null,
+    userId: "",
+    roleId: "",
+    userName: "",
+    roleName: ""
+  });
+  const [isEdit, setIsEdit] = useState(false);
 
-  const fetchAllData = async () => {
+  useEffect(() => {
+    fetchUserRoles();
+    fetchAllUsers();
+    fetchAllRoles();
+  }, []);
+
+  const fetchUserRoles = async () => {
     try {
-      const [userRes, roleRes, userRoleRes] = await Promise.all([
-        axiosInstance.get("/auth/Users"),  // Updated API path for users
-        axiosInstance.get("/roles"),      // Updated API path for roles
-        //axiosInstance.get("/admin/user-roles") // Keeping this as it is (confirm with backend)
-      ]);
-      setUsers(userRes.data.data || []);
-      setRoles(roleRes.data.data || []);
-      setUserRoles(userRoleRes.data.data || []);
-    } catch (err) {
-      console.error("Error fetching data", err);
-      setError("Failed to load data.");
+      const response = await axiosInstance.get("/admin/users/user-roles");
+      const data = response.data.data?.content || [];
+      setUserRoles(data);
+    } catch {
+      setError("Failed to load user roles.");
     }
   };
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
+  const fetchAllUsers = async () => {
+    try {
+      const response = await axiosInstance.post("/auth/Users", {
+        filter: "0",
+        pageNumber: 0,
+        pageSize: 20
+      });
+      setAllUsers(response.data?.data?.content || []);
+    } catch (err) {
+      console.error("Error fetching users", err);
+      setError("Failed to load users.");
+    }
+  };
+
+
+  const fetchAllRoles = async () => {
+    try {
+      const response = await axiosInstance.get("/roles");
+      setAllRoles(response.data?.data?.content || []);
+    } catch (err) {
+      console.error("Error fetching roles", err);
+    }
+  };
 
   const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+    const { name, value } = e.target;
+    const val = name === "userId" || name === "roleId" ? Number(value) : value;
+
+    if (name === "userId") {
+      const selectedUser = allUsers.find((user) => user.id === val);
+      setFormData((prev) => ({
+        ...prev,
+        userId: val,
+        userName: selectedUser?.username || ""
+      }));
+    } else if (name === "roleId") {
+      const selectedRole = allRoles.find((role) => role.id === val);
+      setFormData((prev) => ({
+        ...prev,
+        roleId: val,
+        roleName: selectedRole?.roleName || ""
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: val }));
+    }
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (isEdit) {
-        // Update role for the user
-        await axiosInstance.put("/admin/users/update-role", {
-          userId: editUserId,
-          roleId: formData.roleId // The roleId will be updated
-        });
-        setSuccess("User role updated successfully.");
-      } else {
-        // Assign role to user
-        await axiosInstance.post("/admin/users/assign-role", {
-          userId: formData.userId,
-          roleId: formData.roleId // The roleId will be assigned
-        });
-        setSuccess("Role assigned to user successfully.");
-      }
-      setFormData({ userId: "", roleId: "" });
-      setIsEdit(false);
-      setEditUserId(null);
-      fetchAllData();
-    } catch (err) {
-      console.error("Error submitting form", err);
-      setError("Operation failed.");
-    }
-  };
-
-  const handleEdit = (roleEntry) => {
-    setFormData({
-      userId: roleEntry.userId,
-      roleId: roleEntry.roleId
-    });
-    setEditUserId(roleEntry.userId);
-    setIsEdit(true);
-  };
-
-  const handleDelete = async (roleEntry) => {
-    try {
-      // Delete role from user
-      await axiosInstance.delete("/admin/users/remove-role", {
-        params: {
-          userId: roleEntry.userId,
-          roleId: roleEntry.roleId
-        }
+  e.preventDefault();
+  try {
+    if (isEdit) {
+      await axiosInstance.put("/admin/users/update-role", {
+        userId: formData.userId,
+        roleId: formData.roleId
       });
-      setSuccess("Role removed from user.");
-      fetchAllData();
-    } catch (err) {
-      console.error("Delete failed", err);
-      setError("Failed to remove role.");
+      setSuccess("User role updated successfully.");
+    } else {
+      await axiosInstance.post("/admin/users/assign-role", {
+        userId: formData.userId,
+        roleId: formData.roleId
+      });
+      setSuccess("Role assigned to user successfully.");
+    }
+    setError("");
+    setFormData({ id: null, userId: "", roleId: "", userName: "", roleName: "" });
+    setIsEdit(false);
+    fetchUserRoles();
+  } catch {
+    setError("Operation failed.");
+    setSuccess("");
+  }
+};
+
+  const handleEdit = (ur) => {
+    setFormData({
+      id: ur.id,
+      userId: ur.userId,
+      roleId: ur.roleId,
+      userName: ur.userName || "",
+      roleName: ur.roleName || ""
+    });
+    setIsEdit(true);
+    setSuccess("");
+    setError("");
+  };
+
+  const handleDelete = async (userId, roleId) => {
+    try {
+      await axiosInstance.delete("/admin/users/remove-role", {
+        params: { userId, roleId }
+      });
+      setSuccess("Role removed successfully.");
+      setError("");
+      fetchUserRoles();
+    } catch {
+      setError("Failed to delete role.");
+      setSuccess("");
     }
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">User Role Management</h1>
+    <div className="max-w-7xl mx-auto px-4 py-10">
+      <h1 className="text-4xl font-bold text-center text-indigo-800 mb-10">
+        Manage User Roles
+      </h1>
 
-      {success && <p className="text-green-600 mb-4">{success}</p>}
-      {error && <p className="text-red-600 mb-4">{error}</p>}
+      {/* Status Messages */}
+      {error && <p className="text-red-600 text-center font-semibold mb-4">{error}</p>}
+      {success && <p className="text-green-600 text-center font-semibold mb-4">{success}</p>}
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-6 rounded shadow-md max-w-md mx-auto mb-8"
-      >
-        <h2 className="text-xl font-semibold mb-4">{isEdit ? "Edit Role" : "Assign Role"}</h2>
+      {/* User Dropdown */}
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 shadow-xl p-6 mb-10">
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <label className="block text-sm font-medium text-indigo-800 mb-1">Select User</label>
+            <select
+              name="userId"
+              value={formData.userId}
+              onChange={handleChange}
+              required
+              className="w-full border border-indigo-300 rounded-lg px-4 py-2 shadow focus:ring focus:ring-indigo-200 focus:outline-none"
+            >
+              <option value="">-- Select User --</option>
+              {allUsers.map((user) => (
+                <option key={user.id} value={user.id}>
+                 {user.id} , {user.username}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <select
-          name="userId"
-          value={formData.userId}
-          onChange={handleChange}
-          required={!isEdit}
-          disabled={isEdit}
-          className="w-full p-2 mb-4 border rounded"
-        >
-          <option value="">Select User</option>
-          {users.map((user) => (
-            <option key={user.userId} value={user.userId}>
-              {user.username} ({user.userId})
-            </option>
-          ))}
-        </select>
 
-        <select
-          name="roleId"
-          value={formData.roleId}
-          onChange={handleChange}
-          required
-          className="w-full p-2 mb-4 border rounded"
-        >
-          <option value="">Select Role</option>
-          {roles.map((role) => (
-            <option key={role.roleId} value={role.roleId}>
-              {role.roleName} ({role.roleId})
-            </option>
-          ))}
-        </select>
+          {/* Role Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-indigo-800 mb-1">Select Role</label>
+            <select
+              name="roleId"
+              value={formData.roleId}
+              onChange={handleChange}
+              required
+              className="w-full border border-indigo-300 rounded-lg px-4 py-2 shadow focus:ring focus:ring-indigo-200 focus:outline-none"
+            >
+              <option value="">-- Select Role --</option>
+              {allRoles.map((role) => (
+                <option key={role.roleId} value={role.roleId}>
+                  {role.roleName}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
-        >
-          {isEdit ? "Update Role" : "Assign Role"}
-        </button>
+        <div className="text-center">
+          <button
+            type="submit"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition"
+          >
+            {isEdit ? "Update Role" : "Assign Role"}
+          </button>
+        </div>
       </form>
 
-      <div className="bg-white p-6 rounded shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Assigned Roles</h2>
-        {userRoles.length === 0 ? (
-          <p>No roles assigned.</p>
-        ) : (
-          <ul className="space-y-4">
-            {userRoles.map((ur, index) => {
-              const user = users.find((u) => u.userId === ur.userId);
-              const role = roles.find((r) => r.roleId === ur.roleId);
-              return (
-                <li
-                  key={index}
-                  className="flex justify-between items-center border-b pb-2"
-                >
-                  <div>
-                    <p>
-                      <strong>{user?.username}</strong> - {role?.roleName}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      User ID: {ur.userId}, Role ID: {ur.roleId}
-                    </p>
-                  </div>
-                  <div className="space-x-2">
+      {/* Roles Table */}
+      <div className="overflow-x-auto shadow-xl rounded-2xl border border-gray-200">
+        <table className="min-w-full text-sm text-left text-gray-700">
+          <thead className="bg-indigo-100 sticky top-0 z-10 text-indigo-800">
+            <tr>
+              <th className="px-6 py-4">ID</th>
+              <th className="px-6 py-4">Username</th>
+              <th className="px-6 py-4">Role</th>
+              <th className="px-6 py-4 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {userRoles.length === 0 ? (
+              <tr>
+                <td colSpan="4" className="text-center py-6 text-gray-500">
+                  No role assignments found.
+                </td>
+              </tr>
+            ) : (
+              userRoles.map((ur) => (
+                <tr key={ur.id} className="hover:bg-indigo-50 transition duration-200">
+                  <td className="px-6 py-4">{ur.id}</td>
+                  <td className="px-6 py-4 capitalize">{ur.userName}</td>
+                  <td className="px-6 py-4">{ur.roleName}</td>
+                  <td className="px-6 py-4 flex gap-3 justify-center">
                     <button
-                      className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
                       onClick={() => handleEdit(ur)}
+                      className="bg-yellow-400 hover:bg-yellow-00 text-white px-6 py-3 rounded shadow text-xs"
                     >
                       Edit
                     </button>
                     <button
-                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                      onClick={() => handleDelete(ur)}
+                      onClick={() => handleDelete(ur.userId, ur.roleId)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded shadow text-xs"
                     >
                       Delete
                     </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../utils/axiosInstance";
+import { getUserRoles } from "../utils/authUtils";
 
 const Technologies = () => {
+  const roles = getUserRoles();
+  const isAdmin = roles.includes("ADMIN");
+
   const [technologies, setTechnologies] = useState([]);
   const [formData, setFormData] = useState({
     techName: "",
@@ -12,7 +16,6 @@ const Technologies = () => {
   const [editing, setEditing] = useState(false);
   const [currentTechId, setCurrentTechId] = useState(null);
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const pageSize = 5;
@@ -25,14 +28,14 @@ const Technologies = () => {
     try {
       const response = await axiosInstance.get(`/technologies?page=${page}&size=${pageSize}`);
       const data = response.data.data;
-  
+
       if (data && data.content) {
         const normalized = data.content.map((tech) => ({
           techId: tech.tech_id,
           techName: tech.techName,
           techDescription: tech.techDescription,
         }));
-  
+
         setTechnologies(normalized);
         setTotalPages(data.totalPages);
       } else {
@@ -43,7 +46,6 @@ const Technologies = () => {
       setError("Failed to fetch technologies.");
     }
   };
-  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -82,7 +84,7 @@ const Technologies = () => {
       }
 
       await axiosInstance.post("/technologies/update", {
-        id: currentTechId,
+        tech_id: currentTechId,
         techName: formData.techName,
         techDescription: formData.techDescription,
       });
@@ -100,19 +102,19 @@ const Technologies = () => {
 
   const handleDelete = async (id) => {
     try {
-      // Send the id as part of the request payload
       await axiosInstance.post("/technologies/delete", { tech_id: id });
-  
+
       setSuccess(`Technology with ID ${id} deleted successfully!`);
-      fetchTechnologies(currentPage);  // Refresh the list after deletion
+      fetchTechnologies(currentPage);
     } catch (err) {
       console.error(err);
       setError("Failed to delete technology.");
     }
   };
+
   const handleEdit = (tech) => {
     setEditing(true);
-    setCurrentTechId(tech.tech_id); // use consistent key
+    setCurrentTechId(tech.techId);
     setFormData({
       techName: tech.techName || "",
       techDescription: tech.techDescription || "",
@@ -126,112 +128,128 @@ const Technologies = () => {
   };
 
   return (
-    <div className="container mx-auto p-8 bg-gray-50 rounded-lg shadow-lg">
-      <h1 className="text-3xl font-semibold text-gray-800 mb-6">Technologies</h1>
+    <div className="container mx-auto max-w-6xl px-4 py-10 bg-gradient-to-tr from-blue-50 to-white rounded-xl shadow-lg">
+      <h1 className="text-4xl font-bold text-center text-blue-800 mb-10">
+        Technologies
+      </h1>
 
-      {success && <p className="text-green-500 text-lg">{success}</p>}
-      {error && <p className="text-red-500 text-lg">{error}</p>}
+      {success && <p className="text-green-600 text-center mb-4">{success}</p>}
+      {error && <p className="text-red-600 text-center mb-4">{error}</p>}
 
-      <form
-        onSubmit={editing ? handleUpdate : handleCreate}
-        className="bg-white p-8 rounded-lg shadow-md max-w-lg mx-auto"
-      >
-        <h2 className="text-2xl font-semibold mb-6 text-center">
-          {editing ? "Edit Technology" : "Create Technology"}
+      {isAdmin && (
+        <form
+          onSubmit={editing ? handleUpdate : handleCreate}
+          className="bg-white p-6 rounded-xl shadow-md max-w-2xl mx-auto mb-10 border border-blue-100"
+        >
+          <h2 className="text-2xl font-semibold text-center text-blue-700 mb-6">
+            {editing ? "Edit Technology" : "Create Technology"}
+          </h2>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <input
+              type="text"
+              name="techName"
+              value={formData.techName}
+              onChange={handleChange}
+              placeholder="Technology Name"
+              className="border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="text"
+              name="techDescription"
+              value={formData.techDescription}
+              onChange={handleChange}
+              placeholder="Technology Description"
+              className="border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition"
+          >
+            {editing ? "Update Technology" : "Create Technology"}
+          </button>
+        </form>
+      )}
+
+      <div className="bg-white p-6 rounded-xl shadow-md">
+        <h2 className="text-2xl font-semibold text-blue-700 mb-4">
+          All Technologies
         </h2>
 
-        <input
-          type="text"
-          name="techName"
-          value={formData.techName}
-          onChange={handleChange}
-          placeholder="Technology Name"
-          required
-          className="border p-3 rounded mb-4 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-
-        <input
-          type="text"
-          name="techDescription"
-          value={formData.techDescription}
-          onChange={handleChange}
-          placeholder="Technology Description"
-          required
-          className="border p-3 rounded mb-6 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition duration-200"
-        >
-          {editing ? "Update Technology" : "Create Technology"}
-        </button>
-      </form>
-
-      <div className="mt-12">
-        <h2 className="text-2xl font-semibold mb-4">All Technologies</h2>
-
-        <ul>
+        <div className="grid gap-6">
           {technologies.length === 0 ? (
-            <p className="text-gray-600">No technologies available.</p>
+            <p className="text-gray-600 text-center">No technologies available.</p>
           ) : (
-               technologies.map((tech) => (
-              <li
+            technologies.map((tech) => (
+              <div
                 key={tech.techId}
-                className="flex justify-between items-center bg-white p-6 border-b mb-4 rounded-lg shadow-md"
+                className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border border-gray-200 rounded-lg hover:shadow-md transition"
               >
                 <div>
-                <h3 className="text-lg font-semibold">Technology ID: {tech.techId}</h3>
-                  <p className="text-gray-700">Name: {tech.techName}</p>
-                  <p className="text-gray-700">Description: {tech.techDescription}</p>
+                  <h3 className="text-xl font-semibold text-blue-800">
+                    ID: {tech.techId}
+                  </h3>
+                  <h1>
+                  <p className="text-gray-700 text-sm mt-1">Description :{tech.techDescription}</p>
+                  <p className="text-gray-500 text-xs mt-1">Technology Name :{tech.techName}</p>
+                </h1>
                 </div>
-                <div className="space-x-4">
-                  <button
-                    onClick={() => handleEdit(tech)}
-                    className="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition duration-200"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(tech.techId)}
-                    className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition duration-200"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </li>
-            ))  
+
+                {isAdmin && (
+                  <div className="flex gap-4 mt-4 md:mt-0">
+                    <button
+                      onClick={() => handleEdit(tech)}
+                      className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-md transition"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(tech.techId)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
           )}
-        </ul>
-      </div>
+        </div>
 
-      {/* Pagination Controls */}
-      <div className="mt-8 flex justify-center items-center space-x-4">
-        <button
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 0}
-          className="px-4 py-2 bg-gray-300 rounded-lg text-gray-700 disabled:opacity-50 transition duration-200"
-        >
-          Previous
-        </button>
-
-        {[...Array(totalPages)].map((_, index) => (
+        {/* Pagination */}
+        <div className="mt-8 flex justify-center gap-2">
           <button
-            key={index}
-            onClick={() => handlePageChange(index)}
-            className={`px-4 py-2 rounded-lg ${currentPage === index ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"} transition duration-200`}
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 0}
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50"
           >
-            {index + 1}
+            Previous
           </button>
-        ))}
 
-        <button
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages - 1}
-          className="px-4 py-2 bg-gray-300 rounded-lg text-gray-700 disabled:opacity-50 transition duration-200"
-        >
-          Next
-        </button>
+          {[...Array(totalPages)].map((_, index) => (
+            <button
+              key={index}
+              onClick={() => handlePageChange(index)}
+              className={`px-4 py-2 rounded-lg font-semibold ${
+                currentPage === index
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {index + 1}
+            </button>
+          ))}
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages - 1}
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   );

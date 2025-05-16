@@ -30,6 +30,10 @@ const Profile = () => {
 
         {user ? (
           <>
+            {/* 🆕 Profile Details Heading */}
+            <h2 className="text-2xl font-bold text-center text-indigo-600 mb-4">
+              Profile Details
+            </h2>
             {/* Centered full name */}
             <h1 className="text-4xl font-extrabold text-center mb-10 text-indigo-700 tracking-wide">
               {user.firstName} {user.middleName} {user.lastName}
@@ -37,7 +41,7 @@ const Profile = () => {
 
             {/* Details list */}
             <div className="space-y-6">
-              {[ /* same fields here */ 
+              {[ /* same fields here */
                 { label: "Email", value: user.email },
                 { label: "Username", value: user.username },
                 { label: "Mobile No", value: user.mobileNo || "N/A" },
