@@ -1,13 +1,29 @@
-// src/pages/Dashboard.jsx
 import { useEffect, useState } from "react";
 
 const Dashboard = () => {
-  const [user, setUser] = useState(null);
+  const [username, setUsername] = useState("");
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
+    const token = localStorage.getItem("authToken"); // or whatever your JWT key is
+
+    if (token) {
+      try {
+        // JWT payload is the second part of the token, base64 encoded
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+
+        const payload = JSON.parse(jsonPayload);
+        // Assuming your token payload has "username" field:
+        setUsername(payload.username || "");
+      } catch (error) {
+        console.error("Error decoding token:", error);
+      }
     }
   }, []);
 
@@ -17,24 +33,12 @@ const Dashboard = () => {
 
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
         <h2 className="text-lg font-medium mb-2">
-          Welcome, {user?.name || "User"}!
+          Welcome, {username || "User"} 👋!
         </h2>
-        <p className="text-gray-600">Here's a summary of your activity.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-medium mb-2">Recent Applications</h3>
-          <p className="text-gray-500">No recent applications found.</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-medium mb-2">Upcoming Interviews</h3>
-          <p className="text-gray-500">No upcoming interviews scheduled.</p>
-        </div>
-      </div>
     </div>
   );
 };
 
-export default Dashboard;
+export default Dashboard;  

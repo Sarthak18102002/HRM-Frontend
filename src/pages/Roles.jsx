@@ -152,7 +152,7 @@ const Roles = () => {
                     onClick={() => handleEdit(role)}
                     className="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition duration-200"
                   >
-                    Edit
+                    Update
                   </button>
                   <button
                     onClick={() => handleDelete(role.roleId)}  // Use roleId instead of role_id

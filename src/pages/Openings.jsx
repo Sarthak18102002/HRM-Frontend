@@ -234,7 +234,7 @@ const Openings = () => {
           <p>No job openings available.</p>
         ) : (
           jobOpenings.map((job) => (
-            <li key={job.id} className="bg-white p-6 mb-4 rounded-lg shadow-md flex flex-col gap-4">
+            <li key={job.id} className="bg-white p-6 mb-4 rounded-lg shadow-md flex justify-between items-start gap-4">
               <div>
                 <h3 className="text-lg font-semibold">ID: {job.id}</h3>
                 <p>Job Description: {job.jobDescription}</p>
@@ -243,7 +243,7 @@ const Openings = () => {
               </div>
 
               {role?.toLowerCase() === "admin" && (
-                <div className="space-x-4">
+                <div className="flex space-x-4">
                   <button
                     onClick={() => {
                       setEditing(true);
@@ -324,9 +324,8 @@ const Openings = () => {
             <button
               key={index}
               onClick={() => handlePageChange(index)}
-              className={`px-4 py-2 rounded ${
-                currentPage === index ? "bg-blue-600 text-white" : "bg-gray-200"
-              }`}
+              className={`px-4 py-2 rounded ${currentPage === index ? "bg-blue-600 text-white" : "bg-gray-200"
+                }`}
             >
               {index + 1}
             </button>

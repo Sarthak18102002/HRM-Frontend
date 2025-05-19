@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";  // Import this
 import axiosInstance from "../utils/axiosInstance";
+import { FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -30,7 +31,7 @@ const Profile = () => {
 
         {user ? (
           <>
-            {/* 🆕 Profile Details Heading */}
+            {/*Profile Details Heading */}
             <h2 className="text-2xl font-bold text-center text-indigo-600 mb-4">
               Profile Details
             </h2>
@@ -42,7 +43,20 @@ const Profile = () => {
             {/* Details list */}
             <div className="space-y-6">
               {[ /* same fields here */
-                { label: "Email", value: user.email },
+                {
+                  label: "Email",
+                  value: (
+                    <span className="flex items-center space-x-2">
+                      <span>{user.email}</span>
+                      {user.emailVerified ? (
+                        <FaCheckCircle className="text-green-500" title="Verified" />
+                      ) : (
+                        <FaTimesCircle className="text-red-500" title="Not Verified" />
+                      )}
+                    </span>
+                  ),
+                },
+
                 { label: "Username", value: user.username },
                 { label: "Mobile No", value: user.mobileNo || "N/A" },
                 { label: "Email Verified", value: user.emailVerified ? "Yes" : "No" },

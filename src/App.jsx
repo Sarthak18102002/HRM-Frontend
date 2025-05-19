@@ -11,6 +11,7 @@ import LoadingSpinner from "./components/LoadingSpinner";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Technologies from "./pages/Technologies";
+import QuestionsPage from "./pages/QuestionsPage"; 
 
 // Lazy-loaded components
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -19,9 +20,11 @@ const Openings = lazy(() => import("./pages/Openings"));
 const Resume = lazy(() => import("./pages/Resume"));
 const Settings = lazy(() => import("./pages/Settings"));
 const UpdateProfile = lazy(() => import("./pages/UpdateProfile"));
-const Roles = lazy(() => import("./pages/Roles")); 
+const Roles = lazy(() => import("./pages/Roles"));
 const UserRoles = lazy(() => import("./pages/UserRoles"));
 const UsersList = lazy(() => import("./pages/UsersList"));
+const Applications = lazy(() => import("./pages/Applications"));
+
 
 function App() {
   const isAuthenticated = () => !!localStorage.getItem("authToken");
@@ -78,6 +81,7 @@ function App() {
           />
         }
       />
+
       <Route
         path="/openings"
         element={
@@ -138,6 +142,23 @@ function App() {
           />
         }
       />
+       <Route
+          path="questions"
+          element={<QuestionsPage />} // <-- Newly added route
+        />
+      <Route
+        path="/applications"
+        element={
+          <AuthenticatedRoute
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <Applications />
+              </Suspense>
+            }
+          />
+        }
+      />
+
       <Route
         path="/roles"
         element={

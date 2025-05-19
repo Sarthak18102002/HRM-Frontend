@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { requestPasswordReset } from "../services/authService";
+import Layout from "../components/Layout";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -16,7 +17,6 @@ const ForgotPassword = () => {
 
     try {
       const response = await requestPasswordReset(email);
-
       if (
         response.data &&
         (response.data.status === 200 ||
@@ -36,7 +36,9 @@ const ForgotPassword = () => {
     }
   };
 
-  return (
+  const isAuthenticated = !!localStorage.getItem("authToken");
+
+  const content = (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
         <div className="text-center space-y-4">
@@ -101,6 +103,8 @@ const ForgotPassword = () => {
       </div>
     </div>
   );
+
+  return isAuthenticated ? <Layout>{content}</Layout> : content;
 };
 
 export default ForgotPassword;
