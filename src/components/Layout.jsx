@@ -21,6 +21,7 @@ import {
   FaUser,
   FaFileAlt,
   FaUnlockAlt,
+  FaCalendarCheck,
 } from "react-icons/fa";
 
 const Layout = ({ children }) => {
@@ -31,6 +32,7 @@ const Layout = ({ children }) => {
   const [isMobileView, setIsMobileView] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isInterviewerOpen, setIsInterviewerOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [settingsDropdownOpen, setSettingsDropdownOpen] = useState(false);
   const [userRole, setUserRole] = useState([]);
@@ -43,7 +45,7 @@ const Layout = ({ children }) => {
       try {
         const decodedToken = JSON.parse(atob(token.split(".")[1]));
         setUserRole(decodedToken.roles || []);
-        setUsername(decodedToken.username || "");  // <-- Extract username here
+        setUsername(decodedToken.username || "");
       } catch (e) {
         console.error("Invalid token");
       }
@@ -170,13 +172,13 @@ const Layout = ({ children }) => {
               User Roles
             </Link>
           </li>
-           <li>
+          <li>
             <Link
               to="/questions"
               className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
             >
               <FaUsersCog className="mr-2" size={16} />
-              Question Answers
+              Question
             </Link>
           </li>
           <li>
@@ -231,6 +233,15 @@ const Layout = ({ children }) => {
             >
               <FaFileAlt className="mr-2" size={16} />
               Applications
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/schedule-interview"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaCalendarCheck className="mr-2" size={16} />
+              Interview Schedule
             </Link>
           </li>
         </ul>
@@ -305,6 +316,64 @@ const Layout = ({ children }) => {
       )}
     </li>
   );
+  const interviewerNavItems = (
+    <li key="interviewer">
+      <button
+        onClick={() => setIsInterviewerOpen(!isInterviewerOpen)}
+        className="flex items-center w-full p-3 rounded-lg hover:bg-indigo-700 transition-colors text-left"
+      >
+        <span className="mr-3">
+          <User size={20} />
+        </span>
+        {!isCollapsed && <span>Interviewer</span>}
+        {!isCollapsed && (
+          <span className="ml-auto">
+            {isInterviewerOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </span>
+        )}
+      </button>
+      {!isCollapsed && isInterviewerOpen && (
+        <ul>
+          <li>
+            <Link
+              to="/profile/update"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaUserEdit className="mr-2" size={16} />
+              Update Profile
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/profile"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaUser className="mr-2" size={16} />
+              Profile
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/interviews"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaCalendarCheck className="mr-2" size={16} />
+              Scheduled Interviews
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/review-applications"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaClipboardCheck className="mr-2" size={16} />
+              Review Applications
+            </Link>
+          </li>
+        </ul>
+      )}
+    </li>
+  );
 
   const DesktopSidebarContent = () => (
     <>
@@ -313,7 +382,7 @@ const Layout = ({ children }) => {
           <div className="flex flex-col">
             <h1 className="text-xl font-bold">SRMS</h1>
             {username && (
-              <span className="text-sm text-indigo-300 mt-1 truncate max-w-[200px]">
+              <span className="text-xxl font-bold text-indigo-100 mt-1 truncate max-w-[200px]">
                 Welcome, {username}
               </span>
             )}
@@ -333,9 +402,8 @@ const Layout = ({ children }) => {
             <li key={path}>
               <Link
                 to={path}
-                className={`flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors ${
-                  location.pathname === path ? "bg-indigo-700" : ""
-                }`}
+                className={`flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors ${location.pathname === path ? "bg-indigo-700" : ""
+                  }`}
               >
                 <span className="mr-3">{icon}</span>
                 {!isCollapsed && <span>{text}</span>}
@@ -385,9 +453,8 @@ const Layout = ({ children }) => {
               <Link
                 to={path}
                 onClick={toggleSidebar}
-                className={`flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors ${
-                  location.pathname === path ? "bg-indigo-700" : ""
-                }`}
+                className={`flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors ${location.pathname === path ? "bg-indigo-700" : ""
+                  }`}
               >
                 <span className="mr-3">{icon}</span>
                 <span>{text}</span>
@@ -578,15 +645,14 @@ const Layout = ({ children }) => {
 
       {/* Sidebar */}
       <aside
-        className={`bg-indigo-900 text-white fixed top-0 left-0 h-full transition-transform duration-300 ease-in-out z-40 ${
-          isMobileView
+        className={`bg-indigo-900 text-white fixed top-0 left-0 h-full transition-transform duration-300 ease-in-out z-40 ${isMobileView
             ? isSidebarOpen
               ? "translate-x-0"
               : "-translate-x-full"
             : isCollapsed
-            ? "w-16"
-            : "w-64"
-        }`}
+              ? "w-16"
+              : "w-64"
+          }`}
         style={{ minHeight: "100vh" }}
       >
         {isMobileView ? <MobileSidebarContent /> : <DesktopSidebarContent />}

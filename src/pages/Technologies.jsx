@@ -203,7 +203,7 @@ const Technologies = () => {
                       onClick={() => handleEdit(tech)}
                       className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-md transition"
                     >
-                      Edit
+                      Update
                     </button>
                     <button
                       onClick={() => handleDelete(tech.techId)}

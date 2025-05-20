@@ -12,6 +12,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Technologies from "./pages/Technologies";
 import QuestionsPage from "./pages/QuestionsPage"; 
+import InterviewSchedule from "./pages/InterviewSchedule";
 
 // Lazy-loaded components
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -53,6 +54,7 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/registration" element={<Registration />} />
+      {/* <Route path="/schedule-interview" element={<InterviewSchedule />} /> */}
       <Route path="/profile" element={<AuthenticatedRoute element={
         <Suspense fallback={<LoadingSpinner />}><Profile /></Suspense>
       } />} />
@@ -81,7 +83,18 @@ function App() {
           />
         }
       />
-
+      <Route
+  path="/schedule-interview"
+  element={
+    <AuthenticatedRoute
+      element={
+        <Suspense fallback={<LoadingSpinner />}>
+          <InterviewSchedule />
+        </Suspense>
+      }
+    />
+  }
+/>
       <Route
         path="/openings"
         element={
