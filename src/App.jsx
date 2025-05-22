@@ -13,6 +13,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Technologies from "./pages/Technologies";
 import QuestionsPage from "./pages/QuestionsPage"; 
 import InterviewSchedule from "./pages/InterviewSchedule";
+import UserTechnologyList from './pages/UserTechnologyList';
 
 // Lazy-loaded components
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -50,6 +51,7 @@ function App() {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/user-technologies" element={<UserTechnologyList />} />
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -196,6 +198,7 @@ function App() {
           />
         }
       />
+      
       <Route
         path="/users-list"
         element={
@@ -206,6 +209,7 @@ function App() {
               </Suspense>
             }
           />
+          
         }
       />
     </Routes>

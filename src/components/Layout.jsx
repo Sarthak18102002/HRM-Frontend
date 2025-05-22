@@ -244,6 +244,15 @@ const Layout = ({ children }) => {
               Interview Schedule
             </Link>
           </li>
+          <li>
+            <Link
+              to="/user-technologies"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaCalendarCheck className="mr-2" size={16} />
+              User Technologies
+            </Link>
+          </li>
         </ul>
       )}
     </li>
@@ -316,64 +325,7 @@ const Layout = ({ children }) => {
       )}
     </li>
   );
-  const interviewerNavItems = (
-    <li key="interviewer">
-      <button
-        onClick={() => setIsInterviewerOpen(!isInterviewerOpen)}
-        className="flex items-center w-full p-3 rounded-lg hover:bg-indigo-700 transition-colors text-left"
-      >
-        <span className="mr-3">
-          <User size={20} />
-        </span>
-        {!isCollapsed && <span>Interviewer</span>}
-        {!isCollapsed && (
-          <span className="ml-auto">
-            {isInterviewerOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </span>
-        )}
-      </button>
-      {!isCollapsed && isInterviewerOpen && (
-        <ul>
-          <li>
-            <Link
-              to="/profile/update"
-              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
-            >
-              <FaUserEdit className="mr-2" size={16} />
-              Update Profile
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/profile"
-              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
-            >
-              <FaUser className="mr-2" size={16} />
-              Profile
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/interviews"
-              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
-            >
-              <FaCalendarCheck className="mr-2" size={16} />
-              Scheduled Interviews
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/review-applications"
-              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
-            >
-              <FaClipboardCheck className="mr-2" size={16} />
-              Review Applications
-            </Link>
-          </li>
-        </ul>
-      )}
-    </li>
-  );
+  
 
   const DesktopSidebarContent = () => (
     <>
@@ -612,7 +564,7 @@ const Layout = ({ children }) => {
               </li>
             </>
           )}
-
+  
           {renderSettingsDropdown()}
 
           <li>

@@ -24,7 +24,8 @@ const UpdateProfile = () => {
   });
 
   // === Add profileImageBase64 state here ===
-  const [profileImageBase64, setProfileImageBase64] = useState("");
+  const [profileImage, setProfileImage] = useState(null);
+
 
   const [technologies, setTechnologies] = useState([]);
   const [error, setError] = useState("");
@@ -106,15 +107,11 @@ const UpdateProfile = () => {
   const handleProfileImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (!file.name.toLowerCase().endsWith(".jpg")) {
-        alert("Only .jpg files are allowed.");
+      if (!file.name.toLowerCase().endsWith(".jpg") && !file.name.toLowerCase().endsWith(".png")) {
+        alert("Only .jpg or .png files are allowed.");
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImageBase64(reader.result);
-      };
-      reader.readAsDataURL(file);
+      setProfileImage(file);
     }
   };
 
@@ -135,21 +132,15 @@ const UpdateProfile = () => {
     setError("");
     setSuccess("");
 
-    // Validate dob year length (yyyy)
     if (!isValidYear(formData.dob)) {
       setError("Date of Birth must have a 4-digit year.");
       return;
     }
 
-    // Validate startDate and endDate year length for all experiences
     for (let i = 0; i < formData.experiences.length; i++) {
       const exp = formData.experiences[i];
-      if (!isValidYear(exp.startDate)) {
-        setError(`Experience #${i + 1} Start Date must have a 4-digit year.`);
-        return;
-      }
-      if (!isValidYear(exp.endDate)) {
-        setError(`Experience #${i + 1} End Date must have a 4-digit year.`);
+      if (!isValidYear(exp.startDate) || !isValidYear(exp.endDate)) {
+        setError(`Experience #${i + 1} dates must have a 4-digit year.`);
         return;
       }
     }
@@ -161,16 +152,28 @@ const UpdateProfile = () => {
       endDates: formData.experiences.map((e) => convertToBackendFormat(e.endDate)),
       messages: formData.experiences.map((e) => e.message),
       companyNames: formData.experiences.map((e) => e.companyName),
-
       courseNames: formData.educations.map((ed) => ed.courseName),
       instituteNames: formData.educations.map((ed) => ed.instituteName),
       passingYearMonth: formData.educations.map((ed) => ed.passingYearMonth),
-
-      profileImageBase64,
     };
 
+    const formDataToSend = new FormData();
+    const blob = new Blob([JSON.stringify(payload)], {
+      type: "application/json",
+    });
+
+    formDataToSend.append("profileDTO", blob);
+    if (profileImage) {
+      formDataToSend.append("profileImage", profileImage);
+    }
+
     try {
-      const response = await axiosInstance.put(`/profile/update`, payload);
+      const response = await axiosInstance.put(`/profile/update`, formDataToSend, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       if (response.status === 200) {
         setSuccess("Profile updated successfully!");
         setTimeout(() => navigate("/dashboard"), 2000);
@@ -220,13 +223,14 @@ const UpdateProfile = () => {
             onChange={handleProfileImageChange}
             className="border border-gray-300 p-2 rounded-md w-full"
           />
-          {profileImageBase64 && (
+          {profileImage && (
             <img
-              src={profileImageBase64}
+              src={URL.createObjectURL(profileImage)}
               alt="Profile Preview"
               className="mt-3 h-32 w-32 rounded-full object-cover border"
             />
           )}
+
         </div>
 
         <div className="max-w-4xl mx-auto py-6">
@@ -284,22 +288,22 @@ const UpdateProfile = () => {
             </div>
 
             <div>
-            <label className="block mb-2 font-medium">Blood Group</label>
-            <select
-              name="bloodGroup"
-              value={formData.bloodGroup}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded p-2"
-              required
-            >
-              <option value="">Select</option>
-              {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
-                <option key={bg} value={bg}>
-                  {bg}
-                </option>
-              ))}
-            </select>
-          </div>
+              <label className="block mb-2 font-medium">Blood Group</label>
+              <select
+                name="bloodGroup"
+                value={formData.bloodGroup}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded p-2"
+                required
+              >
+                <option value="">Select</option>
+                {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
+                  <option key={bg} value={bg}>
+                    {bg}
+                  </option>
+                ))}
+              </select>
+            </div>
             {/* Empty to align */}
             <div></div>
           </div>
