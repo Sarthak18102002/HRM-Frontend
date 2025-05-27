@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode} from "jwt-decode"; // fixed import, usually default export
 import Layout from "../components/Layout";
 
 const QuestionsPage = () => {
@@ -12,17 +12,24 @@ const QuestionsPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
-  const [formList, setFormList] = useState([
-    { technology: "", question: "", answer: "" },
+  const [showModal, setShowModal] = useState(false);
+
+  // Changed modalForm to support multiple entries in create mode
+  // If editing, modalForm is a single object; if creating, it's an array of objects.
+  const [modalForm, setModalForm] = useState([
+    {
+      technology: "",
+      question: "",
+      answer: "",
+    },
   ]);
+  const [isEditing, setIsEditing] = useState(false);
 
-  const [form, setForm] = useState({
-    id: null,
-    technology: "",
-    question: "",
-    answer: "",
-  });
+  // New state for delete confirmation modal
+  const [deleteId, setDeleteId] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const token = localStorage.getItem("authToken");
   const navigate = useNavigate();
@@ -83,101 +90,144 @@ const QuestionsPage = () => {
       }
     } catch (err) {
       console.error("Fetch failed", err);
-      setError("Failed to fetch questions");
+      setError("Not Found");
       setQuestions([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFormListChange = (index, e) => {
-    const updated = [...formList];
-    updated[index][e.target.name] = e.target.value;
-    setFormList(updated);
+  const openCreateModal = () => {
+    setIsEditing(false);
+    setModalForm([
+      {
+        technology: "",
+        question: "",
+        answer: "",
+      },
+    ]);
+    setShowModal(true);
+    setError(null);
   };
 
-  const addQuestionForm = () => {
-    setFormList([...formList, { technology: "", question: "", answer: "" }]);
+  const openEditModal = (q) => {
+    setIsEditing(true);
+    // Wrap single object for edit mode (no array)
+    setModalForm([
+      {
+        id: q.id,
+        technology: q.technology,
+        question: q.question,
+        answer: q.answer,
+      },
+    ]);
+    setShowModal(true);
+    setError(null);
   };
 
-  const removeQuestionForm = (index) => {
-    const updated = [...formList];
-    updated.splice(index, 1);
-    setFormList(updated);
+  // Handler for input change (works for both single and multiple entries)
+  const handleInputChange = (index, e) => {
+    const { name, value } = e.target;
+    setModalForm((prevForm) => {
+      const updated = [...prevForm];
+      updated[index] = { ...updated[index], [name]: value };
+      return updated;
+    });
   };
 
-  const handleCreateMultiple = async () => {
+ const handleSave = async () => {
+  if (isEditing) {
+    // Editing single question (first element)
+    const { id, technology, question, answer } = modalForm[0];
+    if (!technology.trim() || !question.trim() || !answer.trim()) {
+      setError("All fields are required.");
+      return;
+    }
+
     try {
       setError(null);
-
-      const validForms = formList.filter(
-        (q) => q.technology.trim() && q.question.trim() && q.answer.trim()
+      await axiosInstance.put(
+        "/questions/update",
+        { id, technology, question, answer },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (validForms.length === 0) {
-        setError("At least one complete question must be filled out.");
-        return;
-      }
-
-      await Promise.all(
-        validForms.map((payload) =>
-          axiosInstance.post("/questions/add", payload, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-        )
-      );
-
-      alert("Questions created successfully.");
-      setFormList([{ technology: "", question: "", answer: "" }]);
+      alert("Question Updated successfully.");
+      setShowModal(false);
       fetchQuestions();
     } catch (err) {
-      console.error("Create failed", err);
-      setError("Failed to create questions.");
+      console.error("Save failed", err);
+      setError("Failed to save question.");
     }
-  };
+  } else {
+    // Creating multiple questions - validate all entries
+    for (let i = 0; i < modalForm.length; i++) {
+      const { technology, question, answer } = modalForm[i];
+      if (!technology.trim() || !question.trim() || !answer.trim()) {
+        setError("All fields are required in all entries.");
+        return;
+      }
+    }
 
-  const handleUpdate = async () => {
     try {
       setError(null);
 
-      if (!form.id) {
-        setError("Select a question to update.");
-        return;
-      }
+      const technology = modalForm[0]?.technology || "";
 
       const payload = {
-        id: form.id,
-        technology: form.technology.trim(),
-        question: form.question.trim(),
-        answer: form.answer.trim(),
+        filter: "add",
+        technology: technology,
+        questions: modalForm.map(({ question, answer }) => ({
+          question,
+          answer,
+        })),
       };
 
-      if (!payload.technology || !payload.question || !payload.answer) {
-        setError("All fields are required for updating a question.");
-        return;
-      }
-
-      await axiosInstance.put("/questions/update", payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      alert("Question updated successfully.");
-      setForm({ id: null, technology: "", question: "", answer: "" });
+      await axiosInstance.post(
+        "/questions/add",
+        payload,  
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("Questions created successfully.");
+      setShowModal(false);
       fetchQuestions();
     } catch (err) {
-      console.error("Update failed", err);
-      setError("Failed to update question.");
+      console.error("Save failed", err);
+      setError("Failed to save questions.");
     }
+  }
+};
+
+  // Add more empty entry
+  const handleAddMore = () => {
+    setModalForm((prevForm) => [
+      ...prevForm,
+      { technology: "", question: "", answer: "" },
+    ]);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm(`Are you sure you want to delete question ID ${id}?`)) return;
+  // Remove last entry (only if more than one)
+  const handleRemoveLast = () => {
+    setModalForm((prevForm) => {
+      if (prevForm.length <= 1) return prevForm;
+      return prevForm.slice(0, prevForm.length - 1);
+    });
+  };
+
+  // Open delete confirmation modal instead of window.confirm
+  const confirmDelete = (id) => {
+    setDeleteId(id);
+    setShowDeleteConfirm(true);
+  };
+
+  // Actual delete after confirmation
+  const handleDelete = async () => {
+    if (!deleteId) return;
 
     try {
       setError(null);
       await axiosInstance.delete("/questions/delete", {
         headers: { Authorization: `Bearer ${token}` },
-        data: { id },
+        data: { id: deleteId },
       });
 
       alert("Question deleted successfully.");
@@ -186,17 +236,10 @@ const QuestionsPage = () => {
     } catch (err) {
       console.error("Delete failed", err);
       setError("Failed to delete question.");
+    } finally {
+      setShowDeleteConfirm(false);
+      setDeleteId(null);
     }
-  };
-
-  const handleEdit = (q) => {
-    setForm({
-      id: q.id,
-      technology: q.technology,
-      question: q.question,
-      answer: q.answer,
-    });
-    window.scrollTo(0, 0);
   };
 
   const handleFilterChange = (e) => {
@@ -214,227 +257,252 @@ const QuestionsPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-8">
-        <h2 className="text-3xl font-extrabold text-indigo-700 mb-6 text-center">
-          Questions Manager
+      <div className="container mx-auto px-6 py-8 max-w-6xl">
+        <h2 className="text-4xl font-extrabold text-indigo-800 mb-8 tracking-wide drop-shadow-md">
+          Question Answers
         </h2>
 
-        {/* Create/Update Form */}
-        <div className="mb-8 bg-indigo-50 rounded-lg p-6 border border-indigo-200 shadow-sm">
-          <h3 className="text-2xl font-semibold mb-4 text-indigo-900">
-            {form.id ? "Update Question" : "Create New Question(s)"}
-          </h3>
-
-          {error && (
-            <div className="mb-4 text-red-700 font-semibold bg-red-100 px-4 py-2 rounded">
-              {error}
-            </div>
-          )}
-
-          {form.id ? (
-            <>
-              {/* Single update form */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block mb-2 font-semibold text-indigo-800">Technology</label>
-                  <input
-                    type="text"
-                    name="technology"
-                    value={form.technology}
-                    onChange={(e) => setForm({ ...form, technology: e.target.value })}
-                    className="w-full rounded-md border border-indigo-300 px-3 py-2"
-                    placeholder="e.g., Java, React"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 font-semibold text-indigo-800">Question</label>
-                  <textarea
-                    name="question"
-                    value={form.question}
-                    onChange={(e) => setForm({ ...form, question: e.target.value })}
-                    rows={3}
-                    className="w-full rounded-md border border-indigo-300 px-3 py-2 resize-none"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 font-semibold text-indigo-800">Answer</label>
-                  <textarea
-                    name="answer"
-                    value={form.answer}
-                    onChange={(e) => setForm({ ...form, answer: e.target.value })}
-                    rows={3}
-                    className="w-full rounded-md border border-indigo-300 px-3 py-2 resize-none"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex gap-4">
-                <button
-                  onClick={handleUpdate}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2 rounded"
-                >
-                  Update
-                </button>
-                <button
-                  onClick={() => setForm({ id: null, technology: "", question: "", answer: "" })}
-                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-5 py-2 rounded"
-                >
-                  Cancel
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Dynamic create form list */}
-              {formList.map((form, index) => (
-                <div
-                  key={index}
-                  className="mb-6 border-b border-indigo-200 pb-4 grid grid-cols-1 md:grid-cols-3 gap-6"
-                >
-                  <div>
-                    <label className="block mb-2 font-semibold text-indigo-800">Technology</label>
-                    <input
-                      type="text"
-                      name="technology"
-                      value={form.technology}
-                      onChange={(e) => handleFormListChange(index, e)}
-                      className="w-full rounded-md border border-indigo-300 px-3 py-2"
-                      placeholder="e.g., Java, React"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-2 font-semibold text-indigo-800">Question</label>
-                    <textarea
-                      name="question"
-                      value={form.question}
-                      onChange={(e) => handleFormListChange(index, e)}
-                      rows={3}
-                      className="w-full rounded-md border border-indigo-300 px-3 py-2 resize-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-2 font-semibold text-indigo-800">Answer</label>
-                    <textarea
-                      name="answer"
-                      value={form.answer}
-                      onChange={(e) => handleFormListChange(index, e)}
-                      rows={3}
-                      className="w-full rounded-md border border-indigo-300 px-3 py-2 resize-none"
-                    />
-                  </div>
-                  {formList.length > 1 && (
-                    <button
-                      onClick={() => removeQuestionForm(index)}
-                      className="text-red-600 hover:text-red-800 font-semibold mt-2 col-span-3"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              ))}
-
-              <div className="flex gap-4">
-                <button
-                  onClick={addQuestionForm}
-                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded"
-                >
-                  Add More
-                </button>
-                <button
-                  onClick={handleCreateMultiple}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded"
-                >
-                  Create All
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Filter */}
-        <div className="mb-6">
+        {/* Filter Input */}
+        <div className="mb-3 md:mb-6 max-w-xs">
           <input
             type="text"
             value={filter}
             onChange={handleFilterChange}
             placeholder='Filter ("ALL", tech, or ID)'
-            className="border border-indigo-300 rounded-md px-3 py-2 mr-3"
+            className="border border-indigo-300 rounded-md px-3 py-2 w-full"
           />
+        </div>
+        {successMessage && (
+          <div className="bg-green-100 text-green-700 font-semibold px-4 py-2 mb-4 rounded shadow">
+            {successMessage}
+          </div>
+        )}
+        {/* Create Button below the filter */}
+        <div className="mb-6">
           <button
-            onClick={fetchQuestions}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"
+            onClick={openCreateModal}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
           >
-            Fetch
+            Create New Question
           </button>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto border border-indigo-200 rounded-lg">
-          <table className="w-full table-auto">
-            <thead className="bg-indigo-100">
-              <tr>
-                <th className="border px-4 py-2">ID</th>
-                <th className="border px-4 py-2">Technology</th>
-                <th className="border px-4 py-2">Question</th>
-                <th className="border px-4 py-2">Answer</th>
-                <th className="border px-4 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {questions.length > 0 ? (
-                questions.map((q) => (
-                  <tr key={q.id} className="hover:bg-indigo-50">
-                    <td className="border px-4 py-2">{q.id}</td>
-                    <td className="border px-4 py-2">{q.technology}</td>
-                    <td className="border px-4 py-2 whitespace-pre-wrap">{q.question}</td>
-                    <td className="border px-4 py-2 whitespace-pre-wrap">{q.answer}</td>
-                    <td className="border px-4 py-2 text-center">
-                      <button
-                        onClick={() => handleEdit(q)}
-                        className="bg-yellow-400 hover:bg-yellow-500 px-3 py-1 rounded mr-2"
-                      >
-                        Update
-                      </button>
-                      <button
-                        onClick={() => handleDelete(q.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                      >
-                        Delete
-                      </button>
+        {loading ? (
+          <div className="text-center text-indigo-700 font-bold mt-6">
+            Loading...
+          </div>
+        ) : (
+          <>
+            {error && (
+              <div className="text-red-600 font-semibold mb-4 text-center">
+                {error}
+              </div>
+            )}
+
+            <table className="table-auto w-full border border-indigo-200 shadow rounded">
+              <thead className="bg-indigo-100 text-indigo-900 font-semibold">
+                <tr>
+                  <th className="border px-4 py-2">ID</th>
+                  <th className="border px-4 py-2">Technology</th>
+                  <th className="border px-4 py-2">Question</th>
+                  <th className="border px-4 py-2">Answer</th>
+                  <th className="border px-4 py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {questions.length > 0 ? (
+                  questions.map((q) => (
+                    <tr key={q.id} className="hover:bg-indigo-50">
+                      <td className="border px-4 py-2">{q.id}</td>
+                      <td className="border px-4 py-2">{q.technology}</td>
+                      <td className="border px-4 py-2">{q.question}</td>
+                      <td className="border px-4 py-2">{q.answer}</td>
+                      <td className="border px-4 py-2">
+                        <button
+                          onClick={() => openEditModal(q)}
+                          className="mr-2 bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => confirmDelete(q.id)}
+                          className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="text-center text-indigo-600 font-semibold py-6"
+                    >
+                      No Questions found.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="text-center py-6 text-gray-500">
-                    No questions found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
 
-        {/* Pagination */}
-        <div className="mt-6 flex justify-center gap-4">
-          <button
-            onClick={handlePrevPage}
-            disabled={page === 0}
-            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded disabled:opacity-50"
-          >
-            Prev
-          </button>
-          <span className="text-indigo-800 font-semibold">
-            Page {page + 1} of {totalPages}
-          </span>
-          <button
-            onClick={handleNextPage}
-            disabled={page >= totalPages - 1}
-            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
+            {/* Pagination */}
+            <div className="flex justify-center gap-4 mt-6">
+              <button
+                onClick={handlePrevPage}
+                disabled={page === 0}
+                className="bg-indigo-600 text-white font-bold py-1 px-4 rounded disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="font-semibold text-indigo-900 py-1 px-2">
+                Page {page + 1} / {totalPages}
+              </span>
+              <button
+                onClick={handleNextPage}
+                disabled={page + 1 >= totalPages}
+                className="bg-indigo-600 text-white font-bold py-1 px-4 rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Modal for Create/Edit */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-lg">
+              <h3 className="text-2xl font-bold mb-4">
+                {isEditing ? "Edit Question" : "Create New Questions"}
+              </h3>
+
+              {error && (
+                <div className="mb-4 text-red-600 font-semibold">{error}</div>
+              )}
+
+              {/* Render multiple question entries when creating */}
+              {modalForm.map((entry, index) => (
+                <div
+                  key={index}
+                  className="border border-indigo-300 rounded-md p-4 mb-4"
+                >
+                  {/* Show ID only when editing */}
+                  {isEditing && (
+                    <div className="mb-2">
+                      <label className="block font-semibold mb-1">ID:</label>
+                      <input
+                        type="text"
+                        name="id"
+                        value={entry.id || ""}
+                        disabled
+                        className="border border-indigo-300 rounded px-3 py-2 w-full"
+                      />
+                    </div>
+                  )}
+
+                  <div className="mb-2">
+                    <label className="block font-semibold mb-1">
+                      Technology:
+                    </label>
+                    <input
+                      type="text"
+                      name="technology"
+                      value={entry.technology}
+                      onChange={(e) => handleInputChange(index, e)}
+                      className="border border-indigo-300 rounded px-3 py-2 w-full"
+                    />
+                  </div>
+
+                  <div className="mb-2">
+                    <label className="block font-semibold mb-1">Question:</label>
+                    <input
+                      type="text"
+                      name="question"
+                      value={entry.question}
+                      onChange={(e) => handleInputChange(index, e)}
+                      className="border border-indigo-300 rounded px-3 py-2 w-full"
+                    />
+                  </div>
+
+                  <div className="mb-2">
+                    <label className="block font-semibold mb-1">Answer:</label>
+                    <input
+                      type="text"
+                      name="answer"
+                      value={entry.answer}
+                      onChange={(e) => handleInputChange(index, e)}
+                      className="border border-indigo-300 rounded px-3 py-2 w-full"
+                    />
+                  </div>
+                </div>
+              ))}
+
+              {/* Add More / Remove Last buttons only in create mode */}
+              {!isEditing && (
+                <div className="flex gap-4 mb-4">
+                  <button
+                    onClick={handleAddMore}
+                    type="button"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
+                  >
+                    Add More
+                  </button>
+                  <button
+                    onClick={handleRemoveLast}
+                    type="button"
+                    disabled={modalForm.length <= 1}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+                  >
+                    Remove Last
+                  </button>
+                </div>
+              )}
+
+              {/* Save and Cancel Buttons */}
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setShowModal(false)}
+                  type="button"
+                  className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  type="button"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
+              <h3 className="text-xl font-bold mb-4">Confirm Delete</h3>
+              <p className="mb-6">Are you sure you want to delete this question?</p>
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

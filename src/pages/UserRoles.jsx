@@ -15,6 +15,9 @@ const UserRoles = () => {
     roleName: ""
   });
   const [isEdit, setIsEdit] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteInfo, setDeleteInfo] = useState({ userId: null, roleId: null });
 
   useEffect(() => {
     fetchUserRoles();
@@ -26,7 +29,8 @@ const UserRoles = () => {
     try {
       const response = await axiosInstance.get("/admin/users/user-roles");
       const data = response.data.data?.content || [];
-      setUserRoles(data);
+      const sortedData = [...data].sort((a, b) => a.id - b.id);
+      setUserRoles(sortedData);
     } catch {
       setError("Failed to load user roles.");
     }
@@ -45,7 +49,6 @@ const UserRoles = () => {
       setError("Failed to load users.");
     }
   };
-
 
   const fetchAllRoles = async () => {
     try {
@@ -80,30 +83,31 @@ const UserRoles = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    if (isEdit) {
-      await axiosInstance.put("/admin/users/update-role", {
-        userId: formData.userId,
-        roleId: formData.roleId
-      });
-      setSuccess("User role updated successfully.");
-    } else {
-      await axiosInstance.post("/admin/users/assign-role", {
-        userId: formData.userId,
-        roleId: formData.roleId
-      });
-      setSuccess("Role assigned to user successfully.");
+    e.preventDefault();
+    try {
+      if (isEdit) {
+        await axiosInstance.put("/admin/users/update-role", {
+          userId: formData.userId,
+          roleId: formData.roleId
+        });
+        setSuccess("User role updated successfully.");
+      } else {
+        await axiosInstance.post("/admin/users/assign-role", {
+          userId: formData.userId,
+          roleId: formData.roleId
+        });
+        setSuccess("Role assigned to user successfully.");
+      }
+      setError("");
+      setFormData({ id: null, userId: "", roleId: "", userName: "", roleName: "" });
+      setIsEdit(false);
+      setShowModal(false);
+      fetchUserRoles();
+    } catch {
+      setError("Operation failed.");
+      setSuccess("");
     }
-    setError("");
-    setFormData({ id: null, userId: "", roleId: "", userName: "", roleName: "" });
-    setIsEdit(false);
-    fetchUserRoles();
-  } catch {
-    setError("Operation failed.");
-    setSuccess("");
-  }
-};
+  };
 
   const handleEdit = (ur) => {
     setFormData({
@@ -116,12 +120,18 @@ const UserRoles = () => {
     setIsEdit(true);
     setSuccess("");
     setError("");
+    setShowModal(true);
   };
 
-  const handleDelete = async (userId, roleId) => {
+  const confirmDelete = (userId, roleId) => {
+    setDeleteInfo({ userId, roleId });
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDelete = async () => {
     try {
       await axiosInstance.delete("/admin/users/remove-role", {
-        params: { userId, roleId }
+        params: { userId: deleteInfo.userId, roleId: deleteInfo.roleId }
       });
       setSuccess("Role removed successfully.");
       setError("");
@@ -130,6 +140,24 @@ const UserRoles = () => {
       setError("Failed to delete role.");
       setSuccess("");
     }
+    setShowDeleteConfirm(false);
+    setDeleteInfo({ userId: null, roleId: null });
+  };
+
+  const openAddModal = () => {
+    setFormData({ id: null, userId: "", roleId: "", userName: "", roleName: "" });
+    setIsEdit(false);
+    setSuccess("");
+    setError("");
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setFormData({ id: null, userId: "", roleId: "", userName: "", roleName: "" });
+    setIsEdit(false);
+    setError("");
+    setSuccess("");
   };
 
   return (
@@ -138,61 +166,105 @@ const UserRoles = () => {
         Manage User Roles
       </h1>
 
-      {/* Status Messages */}
       {error && <p className="text-red-600 text-center font-semibold mb-4">{error}</p>}
       {success && <p className="text-green-600 text-center font-semibold mb-4">{success}</p>}
 
-      {/* User Dropdown */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 shadow-xl p-6 mb-10">
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-indigo-800 mb-1">Select User</label>
-            <select
-              name="userId"
-              value={formData.userId}
-              onChange={handleChange}
-              required
-              className="w-full border border-indigo-300 rounded-lg px-4 py-2 shadow focus:ring focus:ring-indigo-200 focus:outline-none"
-            >
-              <option value="">-- Select User --</option>
-              {allUsers.map((user) => (
-                <option key={user.id} value={user.id}>
-                 {user.id} , {user.username}
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="flex justify-center mb-8">
+        <button
+          onClick={openAddModal}
+          className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold px-8 py-3 rounded-full shadow-lg hover:scale-105 hover:shadow-xl transition duration-300 ease-in-out"
+        >
+          Assign Role
+        </button>
+      </div>
 
-
-          {/* Role Dropdown */}
-          <div>
-            <label className="block text-sm font-medium text-indigo-800 mb-1">Select Role</label>
-            <select
-              name="roleId"
-              value={formData.roleId}
-              onChange={handleChange}
-              required
-              className="w-full border border-indigo-300 rounded-lg px-4 py-2 shadow focus:ring focus:ring-indigo-200 focus:outline-none"
+      {/* Assign Role Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="relative bg-gradient-to-br from-white via-indigo-50 to-indigo-100 shadow-2xl rounded-3xl p-8 w-full max-w-lg">
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 text-indigo-400 hover:text-indigo-700 text-2xl font-bold"
+              aria-label="Close modal"
             >
-              <option value="">-- Select Role --</option>
-              {allRoles.map((role) => (
-                <option key={role.roleId} value={role.roleId}>
-                  {role.roleName}
-                </option>
-              ))}
-            </select>
+              &times;
+            </button>
+
+            <h2 className="text-2xl font-bold text-indigo-800 mb-6 text-center">Assign Role</h2>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-indigo-700 mb-2">Select User</label>
+                <select
+                  name="userId"
+                  value={formData.userId}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm bg-white"
+                >
+                  <option value="">-- Select User --</option>
+                  {allUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.id} , {user.username}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-indigo-700 mb-2">Select Role</label>
+                <select
+                  name="roleId"
+                  value={formData.roleId}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-sm bg-white"
+                >
+                  <option value="">-- Select Role --</option>
+                  {allRoles.map((role) => (
+                    <option key={role.roleId} value={role.roleId}>
+                      {role.roleName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="text-center">
+                <button
+                  type="submit"
+                  className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold px-8 py-3 rounded-full shadow-lg transform hover:scale-105 transition duration-300"
+                >
+                  {isEdit ? "Update Role" : "Assign Role"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
+      )}
 
-        <div className="text-center">
-          <button
-            type="submit"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition"
-          >
-            {isEdit ? "Update Role" : "Assign Role"}
-          </button>
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm text-center">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Confirm Deletion</h3>
+            <p className="text-gray-600 mb-6">Are you sure you want to delete this role assignment?</p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleDelete}
+                className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-semibold"
+              >
+                Yes, Delete
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-semibold"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
-      </form>
+      )}
 
       {/* Roles Table */}
       <div className="overflow-x-auto shadow-xl rounded-2xl border border-gray-200">
@@ -221,12 +293,12 @@ const UserRoles = () => {
                   <td className="px-6 py-4 flex gap-3 justify-center">
                     <button
                       onClick={() => handleEdit(ur)}
-                      className="bg-yellow-400 hover:bg-yellow-00 text-white px-6 py-3 rounded shadow text-xs"
+                      className="bg-yellow-400 hover:bg-yellow-500 text-white px-6 py-3 rounded shadow text-xs"
                     >
                       Update
                     </button>
                     <button
-                      onClick={() => handleDelete(ur.userId, ur.roleId)}
+                      onClick={() => confirmDelete(ur.userId, ur.roleId)}
                       className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded shadow text-xs"
                     >
                       Delete

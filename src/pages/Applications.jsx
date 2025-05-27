@@ -1,17 +1,17 @@
-
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';  // <-- import useNavigate
+import { useNavigate } from 'react-router-dom';
 
-// Utility to get user role from token or localStorage (adjust as needed)
+// Utility to get user role from token or localStorage (updated to include INTERVIEWER as ADMIN-equivalent)
 const getUserRole = () => {
   const token = localStorage.getItem('authToken');
   if (!token) return null;
   try {
-    // Simple JWT decode (without verification) just for demo
     const payload = JSON.parse(atob(token.split('.')[1]));
-    // Assuming roles is an array like ["USER"] or ["ADMIN"]
-    return payload.roles?.includes('ADMIN') ? 'ADMIN' : 'USER';
+    if (payload.roles?.includes('ADMIN') || payload.roles?.includes('INTERVIEWER')) {
+      return 'ADMIN'; // Treat INTERVIEWER as ADMIN
+    }
+    return 'USER';
   } catch {
     return null;
   }
@@ -27,7 +27,7 @@ const Applications = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const role = getUserRole();
-  const navigate = useNavigate();  // <-- initialize navigate
+  const navigate = useNavigate();
 
   const extractFileName = (filePath) => {
     if (!filePath) return '';
@@ -87,7 +87,6 @@ const Applications = () => {
     }
   };
 
-  // New handler for Schedule Interview button click
   const handleScheduleInterview = (app) => {
     navigate('/schedule-interview', {
       state: {
@@ -124,11 +123,7 @@ const Applications = () => {
                   {role === 'ADMIN' && <th className="py-3 px-6 text-left">User ID</th>}
                   <th className="py-3 px-6 text-left">File</th>
                   <th className="py-3 px-6 text-left">Interviewer Email</th>
-                  {role === 'USER' ? (
-                    <th className="py-3 px-6 text-left">Status</th>
-                  ) : (
-                    <th className="py-3 px-6 text-left">Status</th>
-                  )}
+                  <th className="py-3 px-6 text-left">Status</th>
                   {role === 'ADMIN' && <th className="py-3 px-6 text-center">Actions</th>}
                 </tr>
               </thead>
@@ -164,18 +159,14 @@ const Applications = () => {
                       </td>
                       <td className="py-4 px-6">{app.interviewerEmail || 'N/A'}</td>
 
-
                       {role === 'USER' ? (
                         <td className="py-4 px-6">{app.status || 'Pending'}</td>
                       ) : (
                         <>
                           <td className="py-4 px-6 flex items-center gap-4">
-                            {/* Current status badge */}
                             <span className="font-semibold text-indigo-700 px-3 py-1 bg-indigo-100 rounded">
                               {app.status}
                             </span>
-
-                            {/* Dropdown for new status */}
                             <select
                               className="border border-indigo-300 rounded-md px-3 py-1 text-indigo-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
                               value={statusMap[app.id] || ''}
@@ -198,7 +189,6 @@ const Applications = () => {
                               >
                                 Update
                               </button>
-
                               <button
                                 onClick={() => handleScheduleInterview(app)}
                                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md shadow-md transition"
@@ -207,7 +197,6 @@ const Applications = () => {
                               </button>
                             </div>
                           </td>
-
                         </>
                       )}
                     </tr>
@@ -217,7 +206,6 @@ const Applications = () => {
             </table>
           </div>
 
-          {/* Pagination */}
           <div className="flex justify-center items-center gap-6 mt-8">
             <button
               onClick={() => setPage((prev) => Math.max(prev - 1, 0))}

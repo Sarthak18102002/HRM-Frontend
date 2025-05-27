@@ -325,11 +325,78 @@ const Layout = ({ children }) => {
       )}
     </li>
   );
-  
+  const renderInterviewerDropdown = () => (
+    <li className="relative">
+      <button
+        onClick={() => setIsInterviewerOpen(!isInterviewerOpen)}
+        className="flex items-center w-full p-3 rounded-lg hover:bg-indigo-700 transition-colors text-left"
+      >
+        <span className="mr-3">
+          <FaUserShield size={20} />
+        </span>
+        {!isCollapsed && <span>Interviewer</span>}
+        {!isCollapsed && (
+          <span className="ml-auto">
+            {isInterviewerOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </span>
+        )}
+      </button>
+      {!isCollapsed && isInterviewerOpen && (
+        <ul className="ml-6 mt-1 space-y-1">
+           <li>
+            <Link
+              to="/profile/update"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaUserEdit className="mr-2" size={16} />
+              Update Profile
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/profile"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaUser className="mr-2" size={16} />
+              Profile
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/questions"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaUsersCog className="mr-2" size={16} />
+              Question Answers
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/applications"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaFileAlt className="mr-2" size={16} />
+              Applications
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/schedule-interview"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaCalendarCheck className="mr-2" size={16} />
+              Interview Schedule
+            </Link>
+          </li>
+        </ul>
+      )}
+    </li>
+  );
 
   const DesktopSidebarContent = () => (
-    <>
-      <div className="flex items-center justify-between p-4 border-b border-indigo-700">
+    <div className="flex flex-col h-screen overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-indigo-700 shrink-0">
         {!isCollapsed && (
           <div className="flex flex-col">
             <h1 className="text-xl font-bold">SRMS</h1>
@@ -348,36 +415,43 @@ const Layout = ({ children }) => {
         </button>
       </div>
 
-      <nav className="mt-6">
-        <ul>
-          {navItems.map(({ path, icon, text }) => (
-            <li key={path}>
-              <Link
-                to={path}
-                className={`flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors ${location.pathname === path ? "bg-indigo-700" : ""
-                  }`}
+      {/* Scrollable Nav Section with hidden scrollbar */}
+      <div className="flex-1 overflow-y-auto px-2 scrollbar-hidden">
+        <nav className="mt-4">
+          <ul>
+            {navItems.map(({ path, icon, text }) => (
+              <li key={path}>
+                <Link
+                  to={path}
+                  className={`flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors ${location.pathname === path ? "bg-indigo-700" : ""
+                    }`}
+                >
+                  <span className="mr-3">{icon}</span>
+                  {!isCollapsed && <span>{text}</span>}
+                </Link>
+              </li>
+            ))}
+
+            {userRole.includes("ADMIN") && adminNavItems}
+            {userRole.includes("USER") && renderUserDropdown()}
+            {userRole.includes("INTERVIEWER") && renderInterviewerDropdown()}
+            {renderSettingsDropdown()}
+
+            <li>
+              <button
+                onClick={handleLogout}
+                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors w-full text-left"
               >
-                <span className="mr-3">{icon}</span>
-                {!isCollapsed && <span>{text}</span>}
-              </Link>
+                <LogOut size={20} className="mr-3" />
+                {!isCollapsed && <span>Logout</span>}
+              </button>
             </li>
-          ))}
-          {userRole.includes("ADMIN") && adminNavItems}
-          {userRole.includes("USER") && renderUserDropdown()}
-          {renderSettingsDropdown()}
-          <li>
-            <button
-              onClick={handleLogout}
-              className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors w-full text-left"
-            >
-              <LogOut size={20} className="mr-3" />
-              {!isCollapsed && <span>Logout</span>}
-            </button>
-          </li>
-        </ul>
-      </nav>
-    </>
+          </ul>
+        </nav>
+      </div>
+    </div>
   );
+
 
   const MobileSidebarContent = () => (
     <div className="flex flex-col h-full w-64 bg-indigo-900 text-white shadow-lg z-50 fixed top-0 left-0 overflow-y-auto">
@@ -564,7 +638,7 @@ const Layout = ({ children }) => {
               </li>
             </>
           )}
-  
+
           {renderSettingsDropdown()}
 
           <li>
@@ -598,12 +672,12 @@ const Layout = ({ children }) => {
       {/* Sidebar */}
       <aside
         className={`bg-indigo-900 text-white fixed top-0 left-0 h-full transition-transform duration-300 ease-in-out z-40 ${isMobileView
-            ? isSidebarOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-            : isCollapsed
-              ? "w-16"
-              : "w-64"
+          ? isSidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+          : isCollapsed
+            ? "w-16"
+            : "w-64"
           }`}
         style={{ minHeight: "100vh" }}
       >

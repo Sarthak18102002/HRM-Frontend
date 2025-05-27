@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Check, X, Loader } from "lucide-react";
 
 import { verifyOtp, resendOtp } from "../services/authService";
@@ -19,15 +19,15 @@ const OTPVerification = () => {
 
   useEffect(() => {
     inputRefs.current = inputRefs.current.slice(0, 6);
+    inputRefs.current[0]?.focus();
   }, []);
 
   useEffect(() => {
     if (verificationStatus && verificationStatus.success) {
       const redirectTimer = setTimeout(() => {
-        // Clear the stored email when verification is complete
         localStorage.removeItem("emailForOtp");
         navigate("/login");
-      }, 2000);
+      }, 2500);
 
       return () => clearTimeout(redirectTimer);
     }
@@ -64,19 +64,14 @@ const OTPVerification = () => {
       setError("Email not found. Please try registering again.");
       return;
     }
-
     setError("");
     setIsResending(true);
 
     try {
       const response = await resendOtp(email);
-      console.log("OTP resent:", response.data);
       alert("OTP has been resent to your email.");
     } catch (err) {
-      console.error("Resend OTP failed:", err);
-      setError(
-        err.response?.data?.message || err.message || "Failed to resend OTP"
-      );
+      setError(err.response?.data?.message || err.message || "Failed to resend OTP");
     } finally {
       setIsResending(false);
     }
@@ -89,29 +84,22 @@ const OTPVerification = () => {
       setError("Email not found. Please try registering again.");
       return;
     }
-
     setIsVerifying(true);
     setError("");
 
     try {
       const response = await verifyOtp(email, otpValue);
-      console.log("OTP verified:", response.data);
-
       setVerificationStatus({
         success: true,
         code: response.data?.code || "SUCCESS",
         message: response.data?.message || "Verification successful!",
       });
     } catch (err) {
-      console.error("OTP verification failed:", err);
-      setError(
-        err.response?.data?.message || err.message || "Verification failed"
-      );
+      setError(err.response?.data?.message || err.message || "Verification failed");
       setVerificationStatus({
         success: false,
         code: err.response?.data?.code || "ERROR",
-        message:
-          err.response?.data?.message || err.message || "Verification failed",
+        message: err.response?.data?.message || err.message || "Verification failed",
       });
     } finally {
       setIsVerifying(false);
@@ -122,120 +110,128 @@ const OTPVerification = () => {
     const animationState = verificationStatus.success ? "success" : "error";
 
     return (
-      <div className="flex flex-col items-center justify-center p-6">
+      <div className="flex flex-col items-center justify-center p-8 space-y-4 bg-white rounded-xl shadow-xl">
         {animationState === "success" && (
-          <div className="flex flex-col items-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 animate-bounce">
-              <Check className="w-10 h-10 text-green-500" />
+          <>
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4 animate-bounce">
+              <Check className="w-12 h-12 text-green-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-800">
-              Verified Successfully!
-            </h2>
-            <p className="mt-2 text-gray-600">{verificationStatus.message}</p>
-            <p className="mt-2 text-gray-500">Redirecting to login...</p>
-          </div>
+            <h2 className="text-2xl font-bold text-green-700">Verified Successfully!</h2>
+            <p className="text-gray-700 text-center max-w-xs">{verificationStatus.message}</p>
+            <p className="text-gray-500 italic">Redirecting to login...</p>
+          </>
         )}
 
         {animationState === "error" && (
-          <div className="flex flex-col items-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 animate-pulse">
-              <X className="w-10 h-10 text-red-500" />
+          <>
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4 animate-pulse">
+              <X className="w-12 h-12 text-red-600" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-800">
-              Verification Failed
-            </h2>
-            <p className="mt-2 text-gray-600">{verificationStatus.message}</p>
-            {/* <p className="mt-1 text-gray-500">
-              Error code: {verificationStatus.code}
-            </p> */}
+            <h2 className="text-2xl font-bold text-red-700">Verification Failed</h2>
+            <p className="text-gray-700 text-center max-w-xs">{verificationStatus.message}</p>
             <button
-              className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer"
+              className="mt-6 px-6 py-2 rounded-md text-indigo-700 font-semibold bg-indigo-100 hover:bg-indigo-200 transition"
               onClick={() => setVerificationStatus(null)}
             >
               Try Again
             </button>
-          </div>
+          </>
         )}
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6 bg-white p-4 sm:p-8 rounded-xl shadow-lg">
+    <div className="min-h-screen bg-gradient-to-tr from-indigo-50 to-indigo-100 flex items-center justify-center px-4">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 sm:p-10">
         {!verificationStatus ? (
           <>
-            <div className="text-center">
-              <h2 className="mt-2 text-2xl sm:text-3xl font-extrabold text-gray-900">
-                Verify Your Account
-              </h2>
-              <p className="mt-2 text-xs sm:text-sm text-gray-600">
-                Enter the 6-digit verification code sent to{" "}
-                <strong>{email}</strong>
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-extrabold text-indigo-900 tracking-wide">Verify Your Account</h2>
+              <p className="mt-2 text-gray-600 text-sm sm:text-base">
+                Enter the 6-digit code sent to <span className="font-semibold text-indigo-700">{email}</span>
               </p>
             </div>
 
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-2 text-red-700 text-sm rounded-md">
+              <div className="bg-red-50 border-l-4 border-red-600 p-3 mb-6 text-red-700 rounded-lg shadow-sm">
                 {error}
               </div>
             )}
 
             <form
-              className="mt-6 sm:mt-8 space-y-4 sm:space-y-6"
+              className="space-y-6"
               onSubmit={handleSubmit}
               onPaste={handlePaste}
+              noValidate
             >
-              <div className="flex justify-center space-x-1 sm:space-x-2 md:space-x-4">
+              <div className="flex justify-center space-x-3">
                 {otp.map((digit, index) => (
                   <input
                     key={index}
                     type="text"
+                    inputMode="numeric"
+                    pattern="\d*"
                     maxLength={1}
                     value={digit}
                     ref={(el) => (inputRefs.current[index] = el)}
                     onChange={(e) => handleChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
-                    className="w-8 h-10 sm:w-10 sm:h-12 md:w-12 md:h-14 text-center text-lg sm:text-xl font-semibold border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-14 h-16 text-center text-2xl font-bold rounded-xl border-2 border-indigo-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-400 transition-shadow shadow-md"
                     required
+                    autoComplete="one-time-code"
+                    aria-label={`Digit ${index + 1}`}
                   />
                 ))}
               </div>
 
-              <div className="mt-4 sm:mt-6">
-                <button
-                  type="submit"
-                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  disabled={otp.some((digit) => !digit) || isVerifying}
-                >
-                  {isVerifying ? (
-                    <span className="flex items-center">
-                      <Loader className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                      Verifying...
-                    </span>
-                  ) : (
-                    "Verify Code"
-                  )}
-                </button>
-              </div>
-            </form>
-
-            <div className="text-center mt-4">
               <button
-                className="text-xs sm:text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                type="submit"
+                disabled={otp.some((digit) => !digit) || isVerifying}
+                className={`w-full py-3 rounded-xl font-semibold text-white transition ${
+                  otp.some((digit) => !digit) || isVerifying
+                    ? "bg-indigo-300 cursor-not-allowed"
+                    : "bg-indigo-600 hover:bg-indigo-700 shadow-lg"
+                }`}
+              >
+                {isVerifying ? (
+                  <span className="flex justify-center items-center space-x-2">
+                    <Loader className="animate-spin h-5 w-5" />
+                    <span>Verifying...</span>
+                  </span>
+                ) : (
+                  "Verify Code"
+                )}
+              </button>
+
+              <button
+                type="button"
                 onClick={handleResendOtp}
                 disabled={isResending}
+                className={`w-full mt-3 text-center font-medium text-indigo-600 ${
+                  isResending ? "opacity-70 cursor-not-allowed" : "hover:text-indigo-800"
+                }`}
               >
                 {isResending ? (
-                  <span className="flex items-center justify-center">
-                    <Loader className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                    Resending...
+                  <span className="flex justify-center items-center space-x-2">
+                    <Loader className="animate-spin h-5 w-5" />
+                    <span>Resending...</span>
                   </span>
                 ) : (
                   "Didn't receive a code? Resend"
                 )}
               </button>
-            </div>
+            </form>
+
+            <p className="mt-8 text-center text-gray-500 text-sm">
+              Remembered your password?{" "}
+              <Link
+                to="/login"
+                className="text-indigo-600 font-semibold hover:text-indigo-700"
+              >
+                Back to Login
+              </Link>
+            </p>
           </>
         ) : (
           <VerificationAnimation />

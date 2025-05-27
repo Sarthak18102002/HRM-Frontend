@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { resetPassword } from "../services/authService";
-import Layout from "../components/Layout"; // ✅ Import Layout
+import Layout from "../components/Layout";
 
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState("");
@@ -73,30 +73,38 @@ const ResetPassword = () => {
   };
 
   return (
-    <Layout> {/* ✅ Wrap inside Layout */}
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
-          <div className="text-center space-y-4">
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+    <Layout>
+      <div className="min-h-screen flex items-center justify-center px-6 py-12"> 
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-10 transform transition-transform hover:scale-[1.02] duration-300">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-extrabold text-indigo-700 mb-2 tracking-wide">
               Reset Your Password
             </h2>
-            <p className="text-gray-600">Enter your new password below</p>
+            <p className="text-indigo-600 text-lg font-medium">
+              Enter your new password below
+            </p>
           </div>
 
           {message && (
-            <div className="bg-green-50 border-l-4 border-green-500 p-4 text-green-700 text-sm rounded-md">
+            <div className="mb-6 bg-green-100 border-l-6 border-green-500 p-4 rounded-md text-green-800 text-base font-semibold shadow-sm">
               {message}
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 text-red-700 text-sm rounded-md">
+            <div className="mb-6 bg-red-100 border-l-6 border-red-500 p-4 rounded-md text-red-800 text-base font-semibold shadow-sm">
               {error}
             </div>
           )}
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-4">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label
+                htmlFor="new-password"
+                className="block text-sm font-semibold text-indigo-700 mb-2"
+              >
+                New Password
+              </label>
               <div className="relative">
                 <input
                   id="new-password"
@@ -105,20 +113,28 @@ const ResetPassword = () => {
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 placeholder-indigo-400 text-indigo-900 font-medium focus:outline-none focus:ring-4 focus:ring-indigo-300 focus:border-indigo-500 transition"
                   placeholder="New Password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-xl"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-2xl text-indigo-500 hover:text-indigo-700 transition"
                   tabIndex={-1}
                   aria-label={showNewPassword ? "Hide password" : "Show password"}
                 >
                   {showNewPassword ? "🔓" : "🔒"}
                 </button>
               </div>
+            </div>
 
+            <div>
+              <label
+                htmlFor="confirm-password"
+                className="block text-sm font-semibold text-indigo-700 mb-2"
+              >
+                Confirm Password
+              </label>
               <div className="relative">
                 <input
                   id="confirm-password"
@@ -127,30 +143,30 @@ const ResetPassword = () => {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 placeholder-indigo-400 text-indigo-900 font-medium focus:outline-none focus:ring-4 focus:ring-indigo-300 focus:border-indigo-500 transition"
                   placeholder="Confirm Password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-xl"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-2xl text-indigo-500 hover:text-indigo-700 transition"
                   tabIndex={-1}
-                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showConfirmPassword ? "Hide password" : "Show password"
+                  }
                 >
                   {showConfirmPassword ? "🔓" : "🔒"}
                 </button>
               </div>
             </div>
 
-            <div>
-              <button
-                type="submit"
-                disabled={isSubmitting || !token}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400"
-              >
-                {isSubmitting ? "Resetting..." : "Reset Password"}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting || !token}
+              className="w-full py-3 rounded-xl bg-indigo-600 text-white text-lg font-semibold shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-400 disabled:bg-indigo-400 transition"
+            >
+              {isSubmitting ? "Resetting..." : "Reset Password"}
+            </button>
           </form>
         </div>
       </div>

@@ -1,7 +1,87 @@
-// openings .jsx
+// openings.jsx
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../utils/axiosInstance";
 import { jwtDecode } from "jwt-decode";
+
+const Modal = ({ isOpen, onClose, onSubmit, formData, setFormData, editing }) => {
+  if (!isOpen) return null;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+        <h2 className="text-3xl font-bold text-center mb-8 text-indigo-700 tracking-wide">
+          {editing ? "Edit Job Opening" : "Create Job Opening"}
+        </h2>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit(e);
+          }}
+          className="space-y-6"
+        >
+          <input
+            type="text"
+            name="jobDescription"
+            value={formData.jobDescription}
+            onChange={handleChange}
+            placeholder="Job Description"
+            required
+            className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300
+               transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
+          />
+          <input
+            type="text"
+            name="jobType"
+            value={formData.jobType}
+            onChange={handleChange}
+            placeholder="Job Type"
+            required
+            className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300
+               transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
+          />
+          <input
+            type="number"
+            name="yearOfExperience"
+            value={formData.yearOfExperience}
+            onChange={handleChange}
+            placeholder="Years of Experience"
+            min={0}
+            required
+            className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300
+               transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
+          />
+
+          <div className="flex space-x-6 justify-center">
+            <button
+              type="submit"
+              className="flex-1 bg-indigo-600 text-white font-semibold py-3 rounded-xl shadow-lg
+                 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-400
+                 transition duration-300"
+            >
+              {editing ? "Update" : "Create"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-gray-300 text-gray-700 font-semibold py-3 rounded-xl shadow-md
+                 hover:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-300
+                 transition duration-300"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  );
+};
 
 const Openings = () => {
   const [jobOpenings, setJobOpenings] = useState([]);
@@ -23,6 +103,8 @@ const Openings = () => {
   const [applyingJobId, setApplyingJobId] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     if (token) {
@@ -41,7 +123,9 @@ const Openings = () => {
 
   const fetchJobOpenings = async (page) => {
     try {
-      const response = await axiosInstance.get(`/job-openings/all?page=${page}&size=${pageSize}`);
+      const response = await axiosInstance.get(
+        `/job-openings/all?page=${page}&size=${pageSize}`
+      );
       const data = response.data.data;
       setJobOpenings(data.content);
       setTotalPages(data.totalPages);
@@ -51,23 +135,19 @@ const Openings = () => {
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!/^\d+$/.test(formData.yearOfExperience)) {
+      setError("Please enter a valid number for years of experience.");
+      return;
+    }
     try {
-      if (!/^\d+$/.test(formData.yearOfExperience)) {
-        setError("Please enter a valid number for years of experience.");
-        return;
-      }
       await axiosInstance.post("/job-openings", formData);
       setSuccess("Job opening created successfully!");
       setError("");
       fetchJobOpenings(currentPage);
       setFormData({ jobDescription: "", jobType: "", yearOfExperience: 0 });
+      setIsModalOpen(false);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create job opening.");
     }
@@ -93,6 +173,7 @@ const Openings = () => {
         setCurrentJobOpeningId(null);
         setFormData({ jobDescription: "", jobType: "", yearOfExperience: 0 });
         fetchJobOpenings(currentPage);
+        setIsModalOpen(false);
       } else {
         setError(response.data.message || "Failed to update job opening.");
       }
@@ -169,64 +250,32 @@ const Openings = () => {
       {error && <p className="text-red-500">{error}</p>}
 
       {role?.toLowerCase() === "admin" && (
-        <form
-          onSubmit={editing ? handleUpdate : handleCreate}
-          className="bg-white p-8 rounded-lg shadow-md max-w-lg mx-auto mb-12"
-        >
-          <h2 className="text-2xl font-semibold mb-6 text-center">
-            {editing ? "Edit Job Opening" : "Create Job Opening"}
-          </h2>
-          <input
-            type="text"
-            name="jobDescription"
-            value={formData.jobDescription}
-            onChange={handleChange}
-            placeholder="Job Description"
-            required
-            className="border p-3 rounded mb-4 w-full"
-          />
-          <input
-            type="text"
-            name="jobType"
-            value={formData.jobType}
-            onChange={handleChange}
-            placeholder="Job Type"
-            required
-            className="border p-3 rounded mb-4 w-full"
-          />
-          <input
-            type="number"
-            name="yearOfExperience"
-            value={formData.yearOfExperience}
-            onChange={handleChange}
-            placeholder="Years of Experience"
-            min={0}
-            required
-            className="border p-3 rounded mb-6 w-full"
-          />
-          <div className="flex space-x-4">
+        <>
+          <div className="flex justify-center mb-6">
             <button
-              type="submit"
-              className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+              onClick={() => {
+                setFormData({ jobDescription: "", jobType: "", yearOfExperience: 0 });
+                setEditing(false);
+                setCurrentJobOpeningId(null);
+                setError("");
+                setSuccess("");
+                setIsModalOpen(true);
+              }}
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold px-8 py-3 rounded-full shadow-lg hover:scale-105 hover:shadow-xl transition duration-300 ease-in-out"
             >
-              {editing ? "Update" : "Create"}
+              Add Openings
             </button>
-            {editing && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditing(false);
-                  setCurrentJobOpeningId(null);
-                  setFormData({ jobDescription: "", jobType: "", yearOfExperience: 0 });
-                  setError("");
-                }}
-                className="flex-1 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-            )}
           </div>
-        </form>
+
+          <Modal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSubmit={editing ? handleUpdate : handleCreate}
+            formData={formData}
+            setFormData={setFormData}
+            editing={editing}
+          />
+        </>
       )}
 
       <ul>
@@ -234,12 +283,18 @@ const Openings = () => {
           <p>No job openings available.</p>
         ) : (
           jobOpenings.map((job) => (
-            <li key={job.id} className="bg-white p-6 mb-4 rounded-lg shadow-md flex justify-between items-start gap-4">
+            <li
+              key={job.id}
+              className="bg-white p-6 mb-4 rounded-lg shadow-md flex justify-between items-start gap-4"
+            >
               <div>
-                <h3 className="text-lg font-semibold">ID: {job.id}</h3>
-                <p>Job Description: {job.jobDescription}</p>
-                <p>Job Type: {job.jobType}</p>
-                <p>Experience: {job.yearOfExperience} years</p>
+                <h3 className="text-lg font-semibold">
+                  Job Description: {job.jobDescription}
+                </h3>
+                <h3 className="text-lg font-semibold"> Job Type: {job.jobType}</h3>
+                <h3 className="text-lg font-semibold">
+                  Experience: {job.yearOfExperience} years
+                </h3>
               </div>
 
               {role?.toLowerCase() === "admin" && (
@@ -255,6 +310,7 @@ const Openings = () => {
                       });
                       setError("");
                       setSuccess("");
+                      setIsModalOpen(true);
                     }}
                     className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
                   >
@@ -271,14 +327,14 @@ const Openings = () => {
 
               {role?.toLowerCase() === "user" && (
                 <>
-                  <button
-                    onClick={() =>
-                      setApplyingJobId(applyingJobId === job.id ? null : job.id)
-                    }
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-fit"
-                  >
-                    {applyingJobId === job.id ? "Cancel" : "Apply"}
-                  </button>
+                    <button
+                      onClick={() =>
+                        setApplyingJobId(applyingJobId === job.id ? null : job.id)
+                      }
+                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-fit"
+                    >
+                      {applyingJobId === job.id ? "Cancel" : "Apply"}
+                    </button>
 
                   {applyingJobId === job.id && (
                     <form
@@ -324,7 +380,7 @@ const Openings = () => {
             <button
               key={index}
               onClick={() => handlePageChange(index)}
-              className={`px-4 py-2 rounded ${currentPage === index ? "bg-blue-600 text-white" : "bg-gray-200"
+              className={`px-4 py-2 rounded ${currentPage === index ? "bg-blue-600 text-white" : "bg-gray-300"
                 }`}
             >
               {index + 1}
