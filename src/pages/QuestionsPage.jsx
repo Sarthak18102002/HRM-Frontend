@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
-import {jwtDecode} from "jwt-decode"; // fixed import, usually default export
+import { jwtDecode } from "jwt-decode";
 import Layout from "../components/Layout";
 
 const QuestionsPage = () => {
@@ -15,35 +15,27 @@ const QuestionsPage = () => {
   const [successMessage, setSuccessMessage] = useState(null);
 
   const [showModal, setShowModal] = useState(false);
+  // For create mode: array of questions; for edit mode: single object
+  const [modalForm, setModalForm] = useState([{ technology: "", question: "", answer: "" }]);
 
-  // Changed modalForm to support multiple entries in create mode
-  // If editing, modalForm is a single object; if creating, it's an array of objects.
-  const [modalForm, setModalForm] = useState([
-    {
-      technology: "",
-      question: "",
-      answer: "",
-    },
-  ]);
   const [isEditing, setIsEditing] = useState(false);
 
-  // New state for delete confirmation modal
+  // Delete confirmation modal state
   const [deleteId, setDeleteId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const token = localStorage.getItem("authToken");
   const navigate = useNavigate();
 
+  // Role validation
   useEffect(() => {
     if (!token) {
       navigate("/login");
       return;
     }
-
     try {
       const decoded = jwtDecode(token);
       const roles = decoded.roles || (decoded.role ? [decoded.role] : []);
-
       if (!roles.includes("ADMIN") && !roles.includes("INTERVIEWER")) {
         navigate("/unauthorized");
       }
@@ -53,6 +45,7 @@ const QuestionsPage = () => {
     }
   }, [token, navigate]);
 
+  // Fetch questions when filter, page, or size changes
   useEffect(() => {
     fetchQuestions();
   }, [filter, page, size]);
@@ -63,9 +56,7 @@ const QuestionsPage = () => {
       setError(null);
 
       let backendFilter = filter.trim();
-      if (backendFilter.toLowerCase() === "all") {
-        backendFilter = "All";
-      }
+      if (backendFilter.toLowerCase() === "all") backendFilter = "All";
 
       const response = await axiosInstance.post(
         `/questions?page=${page}&size=${size}`,
@@ -97,129 +88,113 @@ const QuestionsPage = () => {
     }
   };
 
+  // Open create modal (multiple entries allowed)
   const openCreateModal = () => {
     setIsEditing(false);
-    setModalForm([
-      {
-        technology: "",
-        question: "",
-        answer: "",
-      },
-    ]);
+    setModalForm([{ technology: "", question: "", answer: "" }]);
     setShowModal(true);
     setError(null);
+    setSuccessMessage(null);
   };
 
+  // Open edit modal (single entry)
   const openEditModal = (q) => {
     setIsEditing(true);
-    // Wrap single object for edit mode (no array)
-    setModalForm([
-      {
-        id: q.id,
-        technology: q.technology,
-        question: q.question,
-        answer: q.answer,
-      },
-    ]);
+    setModalForm({ id: q.id, technology: q.technology, question: q.question, answer: q.answer });
     setShowModal(true);
     setError(null);
+    setSuccessMessage(null);
   };
 
-  // Handler for input change (works for both single and multiple entries)
-  const handleInputChange = (index, e) => {
-    const { name, value } = e.target;
-    setModalForm((prevForm) => {
-      const updated = [...prevForm];
-      updated[index] = { ...updated[index], [name]: value };
-      return updated;
-    });
-  };
-
- const handleSave = async () => {
-  if (isEditing) {
-    // Editing single question (first element)
-    const { id, technology, question, answer } = modalForm[0];
-    if (!technology.trim() || !question.trim() || !answer.trim()) {
-      setError("All fields are required.");
-      return;
-    }
-
-    try {
-      setError(null);
-      await axiosInstance.put(
-        "/questions/update",
-        { id, technology, question, answer },
-        { headers: { Authorization: `Bearer ${token}` } }
+  // Handle input change for modal form
+  // Works for create (array) and edit (object)
+  const handleInputChange = (indexOrEvent, e) => {
+    if (isEditing) {
+      // indexOrEvent is event here
+      const { name, value } = indexOrEvent.target;
+      setModalForm((prev) => ({ ...prev, [name]: value }));
+    } else {
+      // indexOrEvent is index, e is event
+      const index = indexOrEvent;
+      const { name, value } = e.target;
+      setModalForm((prev) =>
+        prev.map((item, i) => (i === index ? { ...item, [name]: value } : item))
       );
-      alert("Question Updated successfully.");
-      setShowModal(false);
-      fetchQuestions();
-    } catch (err) {
-      console.error("Save failed", err);
-      setError("Failed to save question.");
     }
-  } else {
-    // Creating multiple questions - validate all entries
-    for (let i = 0; i < modalForm.length; i++) {
-      const { technology, question, answer } = modalForm[i];
+  };
+
+  // Add more inputs in create mode
+  const handleAddMore = () => {
+    setModalForm((prev) => [...prev, { technology: "", question: "", answer: "" }]);
+  };
+
+  // Remove last input in create mode
+  const handleRemoveLast = () => {
+    setModalForm((prev) => (prev.length > 1 ? prev.slice(0, prev.length - 1) : prev));
+  };
+  const handleRemoveAt = (indexToRemove) => {
+    setModalForm((prevForm) => prevForm.filter((_, i) => i !== indexToRemove));
+  };
+  // Save (create or update)
+  const handleSave = async () => {
+    setError(null);
+    setSuccessMessage(null);
+
+    if (isEditing) {
+      // Validate single form
+      const { technology, question, answer, id } = modalForm;
       if (!technology.trim() || !question.trim() || !answer.trim()) {
-        setError("All fields are required in all entries.");
+        setError("All fields are required.");
         return;
       }
+      try {
+        await axiosInstance.put(
+          "/questions/update",
+          { id, technology, question, answer },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        alert("Question updated successfully.");
+        setShowModal(false);
+        fetchQuestions();
+      } catch (err) {
+        console.error("Update failed", err);
+        setError("Failed to update question.");
+      }
+    } else {
+      // Validate all forms in create mode
+      for (let i = 0; i < modalForm.length; i++) {
+        const { technology, question, answer } = modalForm[i];
+        if (!technology.trim() || !question.trim() || !answer.trim()) {
+          setError("All fields are required for all entries.");
+          return;
+        }
+      }
+      try {
+        // Post each question sequentially or modify backend to accept batch
+        for (const q of modalForm) {
+          await axiosInstance.post(
+            "/questions/add",
+            { technology: q.technology, question: q.question, answer: q.answer },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        }
+        alert("Questions created successfully.");
+        setShowModal(false);
+        fetchQuestions();
+      } catch (err) {
+        console.error("Create failed", err);
+        setError("Failed to create questions.");
+      }
     }
-
-    try {
-      setError(null);
-
-      const technology = modalForm[0]?.technology || "";
-
-      const payload = {
-        filter: "add",
-        technology: technology,
-        questions: modalForm.map(({ question, answer }) => ({
-          question,
-          answer,
-        })),
-      };
-
-      await axiosInstance.post(
-        "/questions/add",
-        payload,  
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      alert("Questions created successfully.");
-      setShowModal(false);
-      fetchQuestions();
-    } catch (err) {
-      console.error("Save failed", err);
-      setError("Failed to save questions.");
-    }
-  }
-};
-
-  // Add more empty entry
-  const handleAddMore = () => {
-    setModalForm((prevForm) => [
-      ...prevForm,
-      { technology: "", question: "", answer: "" },
-    ]);
   };
 
-  // Remove last entry (only if more than one)
-  const handleRemoveLast = () => {
-    setModalForm((prevForm) => {
-      if (prevForm.length <= 1) return prevForm;
-      return prevForm.slice(0, prevForm.length - 1);
-    });
-  };
-
-  // Open delete confirmation modal instead of window.confirm
+  // Confirm delete modal open
   const confirmDelete = (id) => {
     setDeleteId(id);
     setShowDeleteConfirm(true);
   };
 
-  // Actual delete after confirmation
+  // Handle actual delete
   const handleDelete = async () => {
     if (!deleteId) return;
 
@@ -262,7 +237,8 @@ const QuestionsPage = () => {
           Question Answers
         </h2>
 
-        {/* Filter Input */}
+        {error && <div className="mb-4 text-red-600 font-semibold">{error}</div>}
+        {successMessage && <div className="mb-4 text-green-600 font-semibold">{successMessage}</div>}
         <div className="mb-3 md:mb-6 max-w-xs">
           <input
             type="text"
@@ -277,7 +253,6 @@ const QuestionsPage = () => {
             {successMessage}
           </div>
         )}
-        {/* Create Button below the filter */}
         <div className="mb-6">
           <button
             onClick={openCreateModal}
@@ -369,76 +344,98 @@ const QuestionsPage = () => {
           </>
         )}
 
-        {/* Modal for Create/Edit */}
+        {/* Modal for create or update */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-lg">
-              <h3 className="text-2xl font-bold mb-4">
-                {isEditing ? "Edit Question" : "Create New Questions"}
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+              <h3 className="text-2xl font-semibold mb-4">
+                {isEditing ? "Update Question" : "Create Questions"}
               </h3>
 
-              {error && (
-                <div className="mb-4 text-red-600 font-semibold">{error}</div>
-              )}
+              {error && <div className="mb-4 text-red-600 font-semibold">{error}</div>}
 
-              {/* Render multiple question entries when creating */}
-              {modalForm.map((entry, index) => (
-                <div
-                  key={index}
-                  className="border border-indigo-300 rounded-md p-4 mb-4"
-                >
-                  {/* Show ID only when editing */}
-                  {isEditing && (
-                    <div className="mb-2">
-                      <label className="block font-semibold mb-1">ID:</label>
-                      <input
-                        type="text"
-                        name="id"
-                        value={entry.id || ""}
-                        disabled
-                        className="border border-indigo-300 rounded px-3 py-2 w-full"
-                      />
-                    </div>
-                  )}
-
-                  <div className="mb-2">
-                    <label className="block font-semibold mb-1">
-                      Technology:
-                    </label>
+              {/* Editing single question */}
+              {isEditing ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block mb-1 font-medium">Technology</label>
                     <input
                       type="text"
                       name="technology"
-                      value={entry.technology}
-                      onChange={(e) => handleInputChange(index, e)}
-                      className="border border-indigo-300 rounded px-3 py-2 w-full"
+                      value={modalForm.technology}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded p-2"
                     />
                   </div>
-
-                  <div className="mb-2">
-                    <label className="block font-semibold mb-1">Question:</label>
-                    <input
-                      type="text"
+                  <div>
+                    <label className="block mb-1 font-medium">Question</label>
+                    <textarea
                       name="question"
-                      value={entry.question}
-                      onChange={(e) => handleInputChange(index, e)}
-                      className="border border-indigo-300 rounded px-3 py-2 w-full"
+                      value={modalForm.question}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded p-2"
                     />
                   </div>
-
-                  <div className="mb-2">
-                    <label className="block font-semibold mb-1">Answer:</label>
-                    <input
-                      type="text"
+                  <div>
+                    <label className="block mb-1 font-medium">Answer</label>
+                    <textarea
                       name="answer"
-                      value={entry.answer}
-                      onChange={(e) => handleInputChange(index, e)}
-                      className="border border-indigo-300 rounded px-3 py-2 w-full"
+                      value={modalForm.answer}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded p-2"
                     />
                   </div>
                 </div>
-              ))}
+              ) : (
+                // Creating multiple questions
+                modalForm.map((item, index) => (
+                  <div key={index} className="mb-6 border border-gray-300 rounded p-4 relative">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-semibold">Question {index + 1}</h4>
+                      {!isEditing && modalForm.length > 1 && (
+                        <button
+                          onClick={() => handleRemoveAt(index)}
+                          type="button"
+                          className="text-red-600 hover:text-red-800 text-sm font-semibold"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
 
-              {/* Add More / Remove Last buttons only in create mode */}
+                    <div className="mb-2">
+                      <label className="block mb-1 font-medium">Technology</label>
+                      <input
+                        type="text"
+                        name="technology"
+                        value={item.technology}
+                        onChange={(e) => handleInputChange(index, e)}
+                        className="w-full border border-gray-300 rounded p-2"
+                      />
+                    </div>
+                    <div className="mb-2">
+                      <label className="block mb-1 font-medium">Question</label>
+                      <textarea
+                        name="question"
+                        value={item.question}
+                        onChange={(e) => handleInputChange(index, e)}
+                        className="w-full border border-gray-300 rounded p-2"
+                      />
+                    </div>
+                    <div className="mb-2">
+                      <label className="block mb-1 font-medium">Answer</label>
+                      <textarea
+                        name="answer"
+                        value={item.answer}
+                        onChange={(e) => handleInputChange(index, e)}
+                        className="w-full border border-gray-300 rounded p-2"
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+
+              {/* Only Add More button in create mode */}
               {!isEditing && (
                 <div className="flex gap-4 mb-4">
                   <button
@@ -448,18 +445,9 @@ const QuestionsPage = () => {
                   >
                     Add More
                   </button>
-                  <button
-                    onClick={handleRemoveLast}
-                    type="button"
-                    disabled={modalForm.length <= 1}
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
-                  >
-                    Remove Last
-                  </button>
                 </div>
               )}
 
-              {/* Save and Cancel Buttons */}
               <div className="flex justify-end gap-4">
                 <button
                   onClick={() => setShowModal(false)}
@@ -480,7 +468,7 @@ const QuestionsPage = () => {
           </div>
         )}
 
-        {/* Delete Confirmation Modal */}
+        {/* Delete confirmation modal */}
         {showDeleteConfirm && (
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
