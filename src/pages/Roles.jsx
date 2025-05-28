@@ -52,10 +52,10 @@ const Roles = () => {
           ...formData,
           roleId: currentRoleId,
         });
-        setSuccess("Role updated successfully!");
+        alert("Role updated successfully!");
       } else {
         await axiosInstance.post("/roles/create", formData);
-        setSuccess("Role created successfully!");
+        alert("Role created successfully!");
       }
       setFormData({ roleName: "", description: "" });
       setIsEdit(false);
@@ -90,7 +90,7 @@ const Roles = () => {
     if (!roleIdToDelete) return;
     try {
       await axiosInstance.delete(`/roles/${roleIdToDelete}`);
-      setSuccess(`Role with ID ${roleIdToDelete} deleted.`);
+      alert(`Role Deleted Successfully.`);
       setError("");
       fetchRoles();
     } catch (err) {
@@ -231,14 +231,14 @@ const Roles = () => {
                 <div className="space-x-4">
                   <button
                     onClick={() => handleEdit(role)}
-                    className="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition duration-200"
+                    className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 text-white font-semibold px-5 py-2 rounded-xl shadow-lg hover:from-blue-600 hover:to-indigo-700 hover:scale-105 transition-all duration-200"
                   >
                     Update
                   </button>
                   {/* Change here: call confirmDelete instead of direct delete */}
                   <button
                     onClick={() => confirmDelete(role.roleId)}
-                    className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition duration-200"
+                      className="bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-700 text-white font-semibold px-5 py-2 rounded-xl shadow-lg hover:from-purple-600 hover:to-indigo-800 hover:scale-105 transition-all duration-200"
                   >
                     Delete
                   </button>

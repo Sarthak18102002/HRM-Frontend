@@ -198,7 +198,7 @@
 //           />
 //         }
 //       />
-      
+
 //       <Route
 //         path="/users-list"
 //         element={
@@ -209,7 +209,7 @@
 //               </Suspense>
 //             }
 //           />
-          
+
 //         }
 //       />
 //     </Routes>
@@ -322,7 +322,7 @@ function App() {
 
       <Route path="/openings" element={
         <ProtectedLayoutRoute
-          checkAccess={() => isAdmin() || isUser()}
+          checkAccess={() => isAdmin() || isUser()|| isInterviewer()}
           element={<Suspense fallback={<LoadingSpinner />}><Openings /></Suspense>}
         />
       } />
@@ -347,7 +347,7 @@ function App() {
 
       <Route path="/technologies" element={
         <ProtectedLayoutRoute
-           checkAccess={() => isAdmin() || isUser()}
+          checkAccess={() => isAdmin() || isUser()}
           element={<Suspense fallback={<LoadingSpinner />}><Technologies /></Suspense>}
         />
       } />
@@ -387,23 +387,23 @@ function App() {
         />
       } />
 
-        <Route path="/technologies" element={
-  <ProtectedLayoutRoute
-    checkAccess={() => isAdmin() || isUser()}
-    element={
-      <Suspense fallback={<LoadingSpinner />}>
-        <Technologies />
-      </Suspense>
-    }
-  />
-} />
+      <Route path="/technologies" element={
+        <ProtectedLayoutRoute
+          checkAccess={() => isAdmin() || isUser()}
+          element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Technologies />
+            </Suspense>
+          }
+        />
+      } />
 
-     <Route path="/user-technologies" element={
+      <Route path="/user-technologies" element={
         <ProtectedLayoutRoute
           checkAccess={isAdmin}
           element={<Suspense fallback={<LoadingSpinner />}><UserTechnologyList /></Suspense>}
         />
-      } /> 
+      } />
 
     </Routes>
   );

@@ -102,29 +102,35 @@ const Applications = () => {
   }, [page, role]);
 
   return (
-    <div className="p-8 bg-gradient-to-r from-indigo-50 via-white to-indigo-50 min-h-screen">
-      <h2 className="text-4xl font-extrabold mb-8 text-center text-indigo-700 tracking-wide drop-shadow-md">
+    <div className="container mx-auto px-6 py-10 max-w-6xl bg-gradient-to-br from-indigo-50 via-white to-blue-100 rounded-3xl shadow-2xl">
+      <h2 className="text-4xl font-extrabold mb-8 text-center text-indigo-800 tracking-wide drop-shadow-lg">
         {role === 'ADMIN' ? 'All Job Applications' : 'My Job Applications'}
       </h2>
 
       {loading ? (
-        <p className="text-center text-indigo-500 font-semibold text-lg animate-pulse">
+        <p className="text-center text-indigo-700 font-bold text-lg animate-pulse">
           Loading...
         </p>
       ) : error ? (
-        <p className="text-center text-red-600 font-semibold text-lg">{error}</p>
+        <p className="text-center bg-red-100 text-red-700 font-semibold px-4 py-2 mb-4 rounded shadow">
+          {error}
+        </p>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg shadow-lg border border-indigo-200">
-            <table className="min-w-full bg-white rounded-lg">
-              <thead className="bg-indigo-600 text-white uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-6 text-left">ID</th>
-                  {role === 'ADMIN' && <th className="py-3 px-6 text-left">User ID</th>}
-                  <th className="py-3 px-6 text-left">File</th>
-                  <th className="py-3 px-6 text-left">Interviewer Email</th>
-                  <th className="py-3 px-6 text-left">Status</th>
-                  {role === 'ADMIN' && <th className="py-3 px-6 text-center">Actions</th>}
+          <div className="overflow-x-auto rounded-2xl shadow-lg">
+            <table className="min-w-full bg-white rounded-2xl overflow-hidden">
+              <thead>
+                <tr className="bg-gradient-to-r from-indigo-100 to-blue-100 text-indigo-900 font-semibold">
+                  <th scope="col" className="px-6 py-3 text-left">ID</th>
+                  {role === 'ADMIN' && (
+                    <th scope="col" className="px-6 py-3 text-left">User ID</th>
+                  )}
+                  <th scope="col" className="px-6 py-3 text-left">File</th>
+                  <th scope="col" className="px-6 py-3 text-left">Interviewer Email</th>
+                  <th scope="col" className="px-6 py-3 text-left">Status</th>
+                  {role === 'ADMIN' && (
+                    <th scope="col" className="px-6 py-3 text-center">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -132,22 +138,19 @@ const Applications = () => {
                   <tr>
                     <td
                       colSpan={role === 'ADMIN' ? 6 : 4}
-                      className="py-6 text-gray-400 text-center italic"
+                      className="py-8 text-indigo-600 text-center font-semibold"
                     >
                       No applications found
                     </td>
                   </tr>
                 ) : (
-                  applications.map((app, index) => (
-                    <tr
-                      key={app.id}
-                      className={`text-gray-700 border-b 
-                          ${index % 2 === 0 ? 'bg-indigo-50' : 'bg-white'}
-                          hover:bg-indigo-100 transition-colors duration-200`}
-                    >
-                      <td className="py-4 px-6 font-medium">{app.id}</td>
-                      {role === 'ADMIN' && <td className="py-4 px-6">{app.userId}</td>}
-                      <td className="py-4 px-6">
+                  applications.map((app) => (
+                    <tr key={app.id} className="hover:bg-indigo-50 transition">
+                      <td className="px-6 py-4 border-b">{app.id}</td>
+                      {role === 'ADMIN' && (
+                        <td className="px-6 py-4 border-b">{app.userId}</td>
+                      )}
+                      <td className="px-6 py-4 border-b">
                         <a
                           href={`http://localhost:8080/api/job/download/${encodeURIComponent(extractFileName(app.filePath))}`}
                           className="text-indigo-600 hover:text-indigo-800 underline font-semibold"
@@ -157,41 +160,42 @@ const Applications = () => {
                           View PDF
                         </a>
                       </td>
-                      <td className="py-4 px-6">{app.interviewerEmail || 'N/A'}</td>
-
+                      <td className="px-6 py-4 border-b">{app.interviewerEmail || 'N/A'}</td>
                       {role === 'USER' ? (
-                        <td className="py-4 px-6">{app.status || 'Pending'}</td>
+                        <td className="px-6 py-4 border-b">{app.status || 'Pending'}</td>
                       ) : (
                         <>
-                          <td className="py-4 px-6 flex items-center gap-4">
-                            <span className="font-semibold text-indigo-700 px-3 py-1 bg-indigo-100 rounded">
-                              {app.status}
-                            </span>
-                            <select
-                              className="border border-indigo-300 rounded-md px-3 py-1 text-indigo-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-                              value={statusMap[app.id] || ''}
-                              onChange={(e) => handleStatusChange(app.id, e.target.value)}
-                            >
-                              <option value="" disabled>
-                                Change status
-                              </option>
-                              <option value="PENDING">PENDING</option>
-                              <option value="REVIEWED">REVIEWED</option>
-                              <option value="ACCEPTED">ACCEPTED</option>
-                              <option value="REJECTED">REJECTED</option>
-                            </select>
+                          <td className="px-6 py-4 border-b">
+                            <div className="flex items-center gap-4">
+                              <span className="font-semibold text-indigo-700 px-3 py-1 bg-indigo-100 rounded">
+                                {app.status}
+                              </span>
+                              <select
+                                className="border border-indigo-300 rounded-md px-3 py-1 text-indigo-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+                                value={statusMap[app.id] || ''}
+                                onChange={(e) => handleStatusChange(app.id, e.target.value)}
+                              >
+                                <option value="" disabled>
+                                  Change status
+                                </option>
+                                <option value="PENDING">PENDING</option>
+                                <option value="REVIEWED">REVIEWED</option>
+                                <option value="ACCEPTED">ACCEPTED</option>
+                                <option value="REJECTED">REJECTED</option>
+                              </select>
+                            </div>
                           </td>
-                          <td className="py-4 px-6 text-center">
-                            <div className="flex justify-center gap-4">
+                          <td className="px-6 py-4 border-b text-center">
+                            <div className="flex justify-center gap-3">
                               <button
                                 onClick={() => updateStatus(app.id)}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md shadow-md transition"
+                                className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 text-white font-semibold px-4 py-2 rounded-xl shadow-lg hover:from-blue-600 hover:to-indigo-700 hover:scale-105 transition-all duration-200"
                               >
                                 Update
                               </button>
                               <button
                                 onClick={() => handleScheduleInterview(app)}
-                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md shadow-md transition"
+                                className="bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-700 text-white font-semibold px-5 py-2 rounded-xl shadow-lg hover:from-purple-600 hover:to-indigo-800 hover:scale-105 transition-all duration-200"
                               >
                                 Schedule Interview
                               </button>
@@ -206,22 +210,21 @@ const Applications = () => {
             </table>
           </div>
 
-          <div className="flex justify-center items-center gap-6 mt-8">
+          <div className="flex justify-center gap-4 mt-8">
             <button
               onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
               disabled={page === 0}
-              className="px-5 py-2 bg-indigo-200 text-indigo-700 rounded-md shadow-md hover:bg-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="bg-gradient-to-r from-indigo-400 to-blue-500 text-white font-bold py-2 px-6 rounded-full shadow hover:from-indigo-500 hover:to-blue-600 disabled:opacity-50 transition"
             >
               Previous
             </button>
-            <span className="text-indigo-800 font-semibold">
-              Page <span className="font-bold">{page + 1}</span> of{' '}
-              <span className="font-bold">{totalPages}</span>
+            <span className="font-semibold text-indigo-900 py-2 px-4 bg-indigo-100 rounded-full shadow">
+              Page {page + 1} / {totalPages}
             </span>
             <button
               onClick={() => setPage((prev) => (prev + 1 < totalPages ? prev + 1 : prev))}
               disabled={page + 1 >= totalPages}
-              className="px-5 py-2 bg-indigo-200 text-indigo-700 rounded-md shadow-md hover:bg-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="bg-gradient-to-r from-indigo-400 to-blue-500 text-white font-bold py-2 px-6 rounded-full shadow hover:from-indigo-500 hover:to-blue-600 disabled:opacity-50 transition"
             >
               Next
             </button>

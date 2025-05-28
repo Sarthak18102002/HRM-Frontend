@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
@@ -194,13 +193,15 @@ const UpdateProfile = () => {
     );
 
   return (
-    <div className="max-w-5xl mx-auto mt-10 bg-white p-8 rounded-lg shadow-lg border border-gray-200">
-      <h2 className="text-3xl font-extrabold mb-6 text-center text-indigo-700">Update Profile</h2>
+    <div className="container mx-auto px-6 py-10 max-w-4xl bg-gradient-to-br from-indigo-50 via-white to-blue-100 rounded-3xl shadow-2xl">
+      <h2 className="text-3xl font-extrabold mb-8 text-center text-indigo-800 tracking-wide drop-shadow-lg">
+        Update Profile
+      </h2>
 
-      {error && <p className="text-red-600 bg-red-100 p-3 rounded mb-4 font-semibold">{error}</p>}
-      {success && <p className="text-green-700 bg-green-100 p-3 rounded mb-4 font-semibold">{success}</p>}
+      {error && <p className="bg-red-100 text-red-700 font-semibold px-4 py-2 mb-4 rounded shadow text-center">{error}</p>}
+      {success && <p className="bg-green-100 text-green-700 font-semibold px-4 py-2 mb-4 rounded shadow text-center">{success}</p>}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {/* Technologies */}
         <div>
           <label className="block mb-2 text-lg font-semibold text-gray-700">Select Technologies</label>
@@ -210,231 +211,223 @@ const UpdateProfile = () => {
             options={technologies}
             placeholder="Select Technologies"
             display="chip"
-            className="w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full border-2 border-indigo-200 rounded-lg shadow focus:ring-2 focus:ring-indigo-400"
           />
         </div>
 
-        {/* === Add Profile Image Upload Field === */}
+        {/* Profile Image */}
         <div>
           <label className="block mb-2 text-lg font-semibold text-gray-700">Profile Image (JPG only)</label>
           <input
             type="file"
             accept=".jpg"
             onChange={handleProfileImageChange}
-            className="border border-gray-300 p-2 rounded-md w-full"
+            className="border-2 border-indigo-200 p-2 rounded-lg w-full"
           />
           {profileImage && (
             <img
               src={URL.createObjectURL(profileImage)}
               alt="Profile Preview"
-              className="mt-3 h-32 w-32 rounded-full object-cover border"
+              className="mt-3 h-32 w-32 rounded-full object-cover border-2 border-indigo-200 shadow"
             />
           )}
-
         </div>
 
-        <div className="max-w-4xl mx-auto py-6">
-          {/* First row: 3 fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-              <input
-                name="firstName"
-                placeholder="First Name"
-                value={formData.firstName}
-                onChange={handleChange}
-                className="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
-              <input
-                name="middleName"
-                placeholder="Middle Name"
-                value={formData.middleName}
-                onChange={handleChange}
-                className="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-              <input
-                name="lastName"
-                placeholder="Last Name"
-                value={formData.lastName}
-                onChange={handleChange}
-                className="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              />
-            </div>
+        {/* Name Fields */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+            <input
+              name="firstName"
+              placeholder="First Name"
+              value={formData.firstName}
+              onChange={handleChange}
+              className="border-2 border-indigo-200 p-3 rounded-lg w-full focus:ring-2 focus:ring-indigo-400"
+              required
+            />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+            <input
+              name="middleName"
+              placeholder="Middle Name"
+              value={formData.middleName}
+              onChange={handleChange}
+              className="border-2 border-indigo-200 p-3 rounded-lg w-full focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+            <input
+              name="lastName"
+              placeholder="Last Name"
+              value={formData.lastName}
+              onChange={handleChange}
+              className="border-2 border-indigo-200 p-3 rounded-lg w-full focus:ring-2 focus:ring-indigo-400"
+              required
+            />
+          </div>
+        </div>
 
-          {/* Second row: 2 fields aligned under first two fields of above row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+        {/* DOB & Blood Group */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+            <input
+              type="date"
+              name="dob"
+              placeholder="Date of Birth"
+              value={formData.dob}
+              onChange={handleChange}
+              className="border-2 border-indigo-200 p-3 rounded-lg w-full focus:ring-2 focus:ring-indigo-400"
+              required
+            />
+          </div>
+          <div>
+            <label className="block mb-2 font-medium text-gray-700">Blood Group</label>
+            <select
+              name="bloodGroup"
+              value={formData.bloodGroup}
+              onChange={handleChange}
+              className="w-full border-2 border-indigo-200 rounded-lg p-3 focus:ring-2 focus:ring-indigo-400"
+              required
+            >
+              <option value="">Select</option>
+              {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
+                <option key={bg} value={bg}>
+                  {bg}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div></div>
+        </div>
+
+        {/* Education Section */}
+        <div>
+          <h3 className="text-xl font-bold mb-4 text-indigo-700">Education</h3>
+          {formData.educations.map((education, index) => (
+            <div
+              key={index}
+              className="mb-4 border-2 border-indigo-100 p-4 rounded-xl shadow bg-white"
+            >
+              <label className="block text-sm font-bold text-gray-700 mb-1">Course Name</label>
+              <input
+                type="text"
+                placeholder="Course Name"
+                value={education.courseName}
+                onChange={(e) => handleEducationChange(index, "courseName", e.target.value)}
+                className="w-full mb-2 p-2 border-2 border-indigo-200 rounded-lg"
+                required
+              />
+              <label className="block text-sm font-bold text-gray-700 mb-1">Institute Name</label>
+              <input
+                type="text"
+                placeholder="Institute Name"
+                value={education.instituteName}
+                onChange={(e) => handleEducationChange(index, "instituteName", e.target.value)}
+                className="w-full mb-2 p-2 border-2 border-indigo-200 rounded-lg"
+                required
+              />
+              <label className="block text-sm font-bold text-gray-700 mb-1">Passing Year</label>
+              <input
+                type="month"
+                value={formData.educations[index].passingYearMonth || ""}
+                onChange={(e) => handleEducationChange(index, "passingYearMonth", e.target.value)}
+                className="w-full mb-2 p-2 border-2 border-indigo-200 rounded-lg"
+                required
+              />
+              {index > 0 && (
+                <button
+                  type="button"
+                  onClick={() => removeEducation(index)}
+                  className="text-pink-600 hover:text-red-700 font-semibold"
+                >
+                  Remove Education
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addEducation}
+            className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl shadow font-semibold mt-2"
+          >
+            Add Education
+          </button>
+        </div>
+
+        {/* Experience Section */}
+        <div>
+          <h3 className="text-xl font-bold mb-4 text-indigo-700">Experience</h3>
+          {formData.experiences.map((experience, index) => (
+            <div
+              key={index}
+              className="mb-4 border-2 border-indigo-100 p-4 rounded-xl shadow bg-white"
+            >
+              <label className="block text-sm font-bold text-gray-700 mb-1">Company Name</label>
+              <input
+                type="text"
+                placeholder="Company Name"
+                value={experience.companyName}
+                onChange={(e) => handleExperienceChange(index, "companyName", e.target.value)}
+                className="w-full mb-2 p-2 border-2 border-indigo-200 rounded-lg"
+                required
+              />
+              <label className="block text-sm font-bold text-gray-700 mb-1">Start Date</label>
               <input
                 type="date"
-                name="dob"
-                placeholder="Date of Birth"
-                value={formData.dob}
-                onChange={handleChange}
-                className="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Start Date"
+                value={experience.startDate}
+                onChange={(e) => handleExperienceChange(index, "startDate", e.target.value)}
+                className="w-full mb-2 p-2 border-2 border-indigo-200 rounded-lg"
                 required
               />
-            </div>
-
-            <div>
-              <label className="block mb-2 font-medium">Blood Group</label>
-              <select
-                name="bloodGroup"
-                value={formData.bloodGroup}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded p-2"
+              <label className="block text-sm font-bold text-gray-700 mb-1">End Date</label>
+              <input
+                type="date"
+                placeholder="End Date"
+                value={experience.endDate}
+                onChange={(e) => handleExperienceChange(index, "endDate", e.target.value)}
+                className="w-full mb-2 p-2 border-2 border-indigo-200 rounded-lg"
                 required
-              >
-                <option value="">Select</option>
-                {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
-                  <option key={bg} value={bg}>
-                    {bg}
-                  </option>
-                ))}
-              </select>
+              />
+              <textarea
+                placeholder="Message"
+                value={experience.message}
+                onChange={(e) => handleExperienceChange(index, "message", e.target.value)}
+                className="w-full mb-2 p-2 border-2 border-indigo-200 rounded-lg"
+                rows={3}
+                required
+              />
+              {index > 0 && (
+                <button
+                  type="button"
+                  onClick={() => removeExperience(index)}
+                  className="text-pink-600 hover:text-red-700 font-semibold"
+                >
+                  Remove Experience
+                </button>
+              )}
             </div>
-            {/* Empty to align */}
-            <div></div>
-          </div>
+          ))}
+          <button
+            type="button"
+            onClick={addExperience}
+            className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl shadow font-semibold mt-2"
+          >
+            Add Experience
+          </button>
+        </div>
 
-          {/* Education Section */}
-          <div>
-            <h3 className="text-xl font-bold mb-4 text-indigo-700">Education</h3>
-            {formData.educations.map((education, index) => (
-              <div
-                key={index}
-                className="mb-4 border border-gray-300 p-4 rounded-lg shadow-sm bg-gray-50"
-              >
-                <label className="block text-sm font-bold text-gray-700 mb-1">Course Name</label>
-                <input
-                  type="text"
-                  placeholder="Course Name"
-                  value={education.courseName}
-                  onChange={(e) => handleEducationChange(index, "courseName", e.target.value)}
-                  className="w-full mb-2 p-2 border border-gray-300 rounded-md"
-                  required
-                />
-                <label className="block text-sm font-bold text-gray-700 mb-1">Institute Name</label>
-                <input
-                  type="text"
-                  placeholder="Institute Name"
-                  value={education.instituteName}
-                  onChange={(e) => handleEducationChange(index, "instituteName", e.target.value)}
-                  className="w-full mb-2 p-2 border border-gray-300 rounded-md"
-                  required
-                />
-                <label className="block text-sm font-bold text-gray-700 mb-1">Passing Year</label>
-                <input
-                  type="month"
-                  value={formData.educations[index].passingYearMonth || ""}
-                  onChange={(e) => handleEducationChange(index, "passingYearMonth", e.target.value)}
-                  className="w-full mb-2 p-2 border border-gray-300 rounded-md"
-                  required
-                />
-
-                {index > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => removeEducation(index)}
-                    className="text-red-500 hover:text-red-700 font-semibold"
-                  >
-                    Remove Education
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addEducation}
-              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-            >
-              Add Education
-            </button>
-          </div>
-
-          {/* Experience Section */}
-          <div className="mt-8">
-            <h3 className="text-xl font-bold mb-4 text-indigo-700">Experience</h3>
-            {formData.experiences.map((experience, index) => (
-              <div
-                key={index}
-                className="mb-4 border border-gray-300 p-4 rounded-lg shadow-sm bg-gray-50"
-              >
-                <label className="block text-sm font-bold text-gray-700 mb-1">Company Name</label>
-                <input
-                  type="text"
-                  placeholder="Company Name"
-                  value={experience.companyName}
-                  onChange={(e) => handleExperienceChange(index, "companyName", e.target.value)}
-                  className="w-full mb-2 p-2 border border-gray-300 rounded-md"
-                  required
-                />
-                <label className="block text-sm font-bold text-gray-700 mb-1">Start Date</label>
-                <input
-                  type="date"
-                  placeholder="Start Date"
-                  value={experience.startDate}
-                  onChange={(e) => handleExperienceChange(index, "startDate", e.target.value)}
-                  className="w-full mb-2 p-2 border border-gray-300 rounded-md"
-                  required
-                />
-                <label className="block text-sm font-bold text-gray-700 mb-1">End Date</label>
-                <input
-                  type="date"
-                  placeholder="End Date"
-                  value={experience.endDate}
-                  onChange={(e) => handleExperienceChange(index, "endDate", e.target.value)}
-                  className="w-full mb-2 p-2 border border-gray-300 rounded-md"
-                  required
-                />
-                <textarea
-                  placeholder="Message"
-                  value={experience.message}
-                  onChange={(e) => handleExperienceChange(index, "message", e.target.value)}
-                  className="w-full mb-2 p-2 border border-gray-300 rounded-md"
-                  rows={3}
-                  required
-                />
-                {index > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => removeExperience(index)}
-                    className="text-red-500 hover:text-red-700 font-semibold"
-                  >
-                    Remove Experience
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addExperience}
-              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-            >
-              Add Experience
-            </button>
-          </div>
-
-          {/* Submit button */}
-          <div className="mt-8 text-center">
-            <button
-              type="submit"
-              className="bg-indigo-600 text-white px-8 py-3 rounded hover:bg-indigo-700 font-semibold text-lg"
-            >
-              Update Profile
-            </button>
-          </div>
+        {/* Submit button */}
+        <div className="mt-8 text-center">
+          <button
+            type="submit"
+            className="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-blue-600 hover:to-indigo-700 text-white px-10 py-3 rounded-xl shadow font-bold text-lg"
+          >
+            Update Profile
+          </button>
         </div>
       </form>
     </div>

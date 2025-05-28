@@ -361,6 +361,16 @@ const Layout = ({ children }) => {
               Profile
             </Link>
           </li>
+           <li>
+              <Link
+                to="/openings"
+                onClick={toggleSidebar}
+                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <FaBriefcase className="mr-2" size={16} />
+                Openings
+              </Link>
+            </li>
           <li>
             <Link
               to="/questions"

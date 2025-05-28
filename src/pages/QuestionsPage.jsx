@@ -232,20 +232,28 @@ const QuestionsPage = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-6 py-8 max-w-6xl">
-        <h2 className="text-4xl font-extrabold text-indigo-800 mb-8 tracking-wide drop-shadow-md">
+      <div className="container mx-auto px-6 py-10 max-w-6xl bg-gradient-to-br from-indigo-50 via-white to-blue-100 rounded-3xl shadow-2xl">
+        <h2 className="text-4xl font-extrabold text-indigo-800 mb-8 tracking-wide drop-shadow-lg text-center">
           Question Answers
         </h2>
 
-        {error && <div className="mb-4 text-red-600 font-semibold">{error}</div>}
-        {successMessage && <div className="mb-4 text-green-600 font-semibold">{successMessage}</div>}
-        <div className="mb-3 md:mb-6 max-w-xs">
+        {error && <div className="mb-4 text-red-600 font-semibold text-center">{error}</div>}
+        {successMessage && (
+          <div className="bg-green-100 text-green-700 font-semibold px-4 py-2 mb-4 rounded shadow text-center">
+            {successMessage}
+          </div>
+        )}
+
+        <div className="mb-8 max-w-xs">
+          <label className="block mb-2 text-indigo-700 font-medium">
+            Filter ("ALL", tech, or ID)
+          </label>
           <input
             type="text"
             value={filter}
             onChange={handleFilterChange}
-            placeholder='Filter ("ALL", tech, or ID)'
-            className="border border-indigo-300 rounded-md px-3 py-2 w-full"
+            placeholder="Type to filter..."
+            className="border-2 border-indigo-300 rounded-lg px-4 py-2 w-full shadow focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
           />
         </div>
         {successMessage && (
@@ -256,87 +264,84 @@ const QuestionsPage = () => {
         <div className="mb-6">
           <button
             onClick={openCreateModal}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
+            className="mt-4 bg-gradient-to-r from-indigo-500 via-blue-500 to-indigo-700 hover:from-blue-600 hover:to-indigo-800 text-white font-bold py-2 px-6 rounded-xl shadow-lg transition-all duration-200 w-full md:w-auto"
           >
-            Create New Question
+            + Create New Question
           </button>
         </div>
 
+
         {loading ? (
-          <div className="text-center text-indigo-700 font-bold mt-6">
+          <div className="text-center text-indigo-700 font-bold mt-6 animate-pulse">
             Loading...
           </div>
         ) : (
           <>
-            {error && (
-              <div className="text-red-600 font-semibold mb-4 text-center">
-                {error}
-              </div>
-            )}
+            <div className="overflow-x-auto rounded-2xl shadow-lg">
+              <table className="min-w-full bg-white rounded-2xl overflow-hidden">
+                <thead className="bg-gradient-to-r from-indigo-100 to-blue-100 text-indigo-900 font-semibold">
+                  <tr>
+                    <th className="px-6 py-3 text-left">ID</th>
+                    <th className="px-6 py-3 text-left">Technology</th>
+                    <th className="px-6 py-3 text-left">Question</th>
+                    <th className="px-6 py-3 text-left">Answer</th>
+                    <th className="px-6 py-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {questions.length > 0 ? (
+                    questions.map((q) => (
 
-            <table className="table-auto w-full border border-indigo-200 shadow rounded">
-              <thead className="bg-indigo-100 text-indigo-900 font-semibold">
-                <tr>
-                  <th className="border px-4 py-2">ID</th>
-                  <th className="border px-4 py-2">Technology</th>
-                  <th className="border px-4 py-2">Question</th>
-                  <th className="border px-4 py-2">Answer</th>
-                  <th className="border px-4 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {questions.length > 0 ? (
-                  questions.map((q) => (
-                    <tr key={q.id} className="hover:bg-indigo-50">
-                      <td className="border px-4 py-2">{q.id}</td>
-                      <td className="border px-4 py-2">{q.technology}</td>
-                      <td className="border px-4 py-2">{q.question}</td>
-                      <td className="border px-4 py-2">{q.answer}</td>
-                      <td className="border px-4 py-2">
-                        <button
-                          onClick={() => openEditModal(q)}
-                          className="mr-2 bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => confirmDelete(q.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded"
-                        >
-                          Delete
-                        </button>
+                      <tr key={q.id} className="hover:bg-indigo-50 transition">
+                        <td className="px-6 py-4 border-b">{q.id}</td>
+                        <td className="px-6 py-4 border-b">{q.technology}</td>
+                        <td className="px-6 py-4 border-b">{q.question}</td>
+                        <td className="px-6 py-4 border-b">{q.answer}</td>
+                        <td className="px-6 py-4 border-b text-center">
+                          <div className="flex justify-center gap-3">
+                            <button
+                              onClick={() => openEditModal(q)}
+                              className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 text-white font-semibold px-5 py-2 rounded-xl shadow-lg hover:from-blue-600 hover:to-indigo-700 hover:scale-105 transition-all duration-200"
+                            >
+                              Update
+                            </button>
+                            <button
+                              onClick={() => confirmDelete(q.id)}
+                              className="bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-700 text-white font-semibold px-5 py-2 rounded-xl shadow-lg hover:from-purple-600 hover:to-indigo-800 hover:scale-105 transition-all duration-200"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="text-center text-indigo-600 font-semibold py-8">
+                        No Questions found.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="text-center text-indigo-600 font-semibold py-6"
-                    >
-                      No Questions found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {/* Pagination */}
-            <div className="flex justify-center gap-4 mt-6">
+            <div className="flex justify-center gap-4 mt-8">
               <button
                 onClick={handlePrevPage}
                 disabled={page === 0}
-                className="bg-indigo-600 text-white font-bold py-1 px-4 rounded disabled:opacity-50"
+                className="bg-gradient-to-r from-indigo-400 to-blue-500 text-white font-bold py-2 px-6 rounded-full shadow hover:from-indigo-500 hover:to-blue-600 disabled:opacity-50 transition"
               >
                 Previous
               </button>
-              <span className="font-semibold text-indigo-900 py-1 px-2">
+              <span className="font-semibold text-indigo-900 py-2 px-4 bg-indigo-100 rounded-full shadow">
                 Page {page + 1} / {totalPages}
               </span>
               <button
                 onClick={handleNextPage}
                 disabled={page + 1 >= totalPages}
-                className="bg-indigo-600 text-white font-bold py-1 px-4 rounded disabled:opacity-50"
+                className="bg-gradient-to-r from-indigo-400 to-blue-500 text-white font-bold py-2 px-6 rounded-full shadow hover:from-indigo-500 hover:to-blue-600 disabled:opacity-50 transition"
               >
                 Next
               </button>
@@ -346,89 +351,88 @@ const QuestionsPage = () => {
 
         {/* Modal for create or update */}
         {showModal && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
-              <h3 className="text-2xl font-semibold mb-4">
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-3xl max-h-[80vh] overflow-y-auto shadow-2xl border-2 border-indigo-100">
+              <h3 className="text-2xl font-bold mb-6 text-indigo-700 text-center">
                 {isEditing ? "Update Question" : "Create Questions"}
               </h3>
 
-              {error && <div className="mb-4 text-red-600 font-semibold">{error}</div>}
+              {error && <div className="mb-4 text-red-600 font-semibold text-center">{error}</div>}
 
               {/* Editing single question */}
               {isEditing ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="block mb-1 font-medium">Technology</label>
+                    <label className="block mb-1 font-medium text-indigo-700">Technology</label>
                     <input
                       type="text"
                       name="technology"
                       value={modalForm.technology}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded p-2"
+                      className="w-full border-2 border-indigo-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium">Question</label>
+                    <label className="block mb-1 font-medium text-indigo-700">Question</label>
                     <textarea
                       name="question"
                       value={modalForm.question}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded p-2"
+                      className="w-full border-2 border-indigo-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium">Answer</label>
+                    <label className="block mb-1 font-medium text-indigo-700">Answer</label>
                     <textarea
                       name="answer"
                       value={modalForm.answer}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded p-2"
+                      className="w-full border-2 border-indigo-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     />
                   </div>
                 </div>
               ) : (
                 // Creating multiple questions
                 modalForm.map((item, index) => (
-                  <div key={index} className="mb-6 border border-gray-300 rounded p-4 relative">
+                  <div key={index} className="mb-6 border-2 border-indigo-100 rounded-xl p-4 relative shadow">
                     <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-semibold">Question {index + 1}</h4>
+                      <h4 className="font-semibold text-indigo-700">Question {index + 1}</h4>
                       {!isEditing && modalForm.length > 1 && (
                         <button
                           onClick={() => handleRemoveAt(index)}
                           type="button"
-                          className="text-red-600 hover:text-red-800 text-sm font-semibold"
+                          className="text-pink-600 hover:text-red-700 text-sm font-semibold"
                         >
                           Remove
                         </button>
                       )}
                     </div>
-
                     <div className="mb-2">
-                      <label className="block mb-1 font-medium">Technology</label>
+                      <label className="block mb-1 font-medium text-indigo-700">Technology</label>
                       <input
                         type="text"
                         name="technology"
                         value={item.technology}
                         onChange={(e) => handleInputChange(index, e)}
-                        className="w-full border border-gray-300 rounded p-2"
+                        className="w-full border-2 border-indigo-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       />
                     </div>
                     <div className="mb-2">
-                      <label className="block mb-1 font-medium">Question</label>
+                      <label className="block mb-1 font-medium text-indigo-700">Question</label>
                       <textarea
                         name="question"
                         value={item.question}
                         onChange={(e) => handleInputChange(index, e)}
-                        className="w-full border border-gray-300 rounded p-2"
+                        className="w-full border-2 border-indigo-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       />
                     </div>
                     <div className="mb-2">
-                      <label className="block mb-1 font-medium">Answer</label>
+                      <label className="block mb-1 font-medium text-indigo-700">Answer</label>
                       <textarea
                         name="answer"
                         value={item.answer}
                         onChange={(e) => handleInputChange(index, e)}
-                        className="w-full border border-gray-300 rounded p-2"
+                        className="w-full border-2 border-indigo-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       />
                     </div>
                   </div>
@@ -441,25 +445,25 @@ const QuestionsPage = () => {
                   <button
                     onClick={handleAddMore}
                     type="button"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
+                    className="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-2 px-6 rounded-xl shadow transition"
                   >
                     Add More
                   </button>
                 </div>
               )}
 
-              <div className="flex justify-end gap-4">
+              <div className="flex justify-end gap-4 mt-6">
                 <button
                   onClick={() => setShowModal(false)}
                   type="button"
-                  className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded"
+                  className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-xl shadow"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   type="button"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
+                  className="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-2 px-6 rounded-xl shadow"
                 >
                   Save
                 </button>
@@ -470,20 +474,20 @@ const QuestionsPage = () => {
 
         {/* Delete confirmation modal */}
         {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
-              <h3 className="text-xl font-bold mb-4">Confirm Delete</h3>
-              <p className="mb-6">Are you sure you want to delete this question?</p>
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border-2 border-pink-100">
+              <h3 className="text-xl font-bold mb-4 text-pink-700 text-center">Confirm Delete</h3>
+              <p className="mb-6 text-center text-gray-700">Are you sure you want to delete this question?</p>
               <div className="flex justify-end gap-4">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded"
+                 className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 text-white font-semibold px-5 py-2 rounded-xl shadow-lg hover:from-blue-600 hover:to-indigo-700 hover:scale-105 transition-all duration-200"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                 className="bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-700 text-white font-semibold px-5 py-2 rounded-xl shadow-lg hover:from-purple-600 hover:to-indigo-800 hover:scale-105 transition-all duration-200"
                 >
                   Delete
                 </button>

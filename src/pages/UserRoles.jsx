@@ -90,13 +90,13 @@ const UserRoles = () => {
           userId: formData.userId,
           roleId: formData.roleId
         });
-        setSuccess("User role updated successfully.");
+        alert("User role updated successfully.");
       } else {
         await axiosInstance.post("/admin/users/assign-role", {
           userId: formData.userId,
           roleId: formData.roleId
         });
-        setSuccess("Role assigned to user successfully.");
+        alert("Role assigned to user successfully.");
       }
       setError("");
       setFormData({ id: null, userId: "", roleId: "", userName: "", roleName: "" });
@@ -133,7 +133,7 @@ const UserRoles = () => {
       await axiosInstance.delete("/admin/users/remove-role", {
         params: { userId: deleteInfo.userId, roleId: deleteInfo.roleId }
       });
-      setSuccess("Role removed successfully.");
+      alert("Role removed successfully.");
       setError("");
       fetchUserRoles();
     } catch {
@@ -293,13 +293,13 @@ const UserRoles = () => {
                   <td className="px-6 py-4 flex gap-3 justify-center">
                     <button
                       onClick={() => handleEdit(ur)}
-                      className="bg-yellow-400 hover:bg-yellow-500 text-white px-6 py-3 rounded shadow text-xs"
+                      className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 text-white font-semibold px-5 py-2 rounded-xl shadow-lg hover:from-blue-600 hover:to-indigo-700 hover:scale-105 transition-all duration-200"
                     >
                       Update
                     </button>
                     <button
                       onClick={() => confirmDelete(ur.userId, ur.roleId)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded shadow text-xs"
+                      className="bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-700 text-white font-semibold px-5 py-2 rounded-xl shadow-lg hover:from-purple-600 hover:to-indigo-800 hover:scale-105 transition-all duration-200"
                     >
                       Delete
                     </button>

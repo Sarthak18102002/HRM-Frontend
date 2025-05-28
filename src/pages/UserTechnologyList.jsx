@@ -45,7 +45,7 @@ const UserTechnologyList = () => {
           <table className="min-w-full bg-white">
             <thead className="bg-indigo-600 text-white">
               <tr>
-                <th className="py-3 px-6 text-left uppercase font-medium tracking-wider">ID</th>
+                {/* <th className="py-3 px-6 text-left uppercase font-medium tracking-wider">ID</th> */}
                 <th className="py-3 px-6 text-left uppercase font-medium tracking-wider">User ID</th>
                 <th className="py-3 px-6 text-left uppercase font-medium tracking-wider">Technology</th>
               </tr>
@@ -53,7 +53,7 @@ const UserTechnologyList = () => {
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan="3" className="text-center py-6 text-gray-500 italic">
+                  <td colSpan="2" className="text-center py-6 text-gray-500 italic">
                     No data available.
                   </td>
                 </tr>
@@ -67,7 +67,7 @@ const UserTechnologyList = () => {
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#E0E7FF')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = idx % 2 === 0 ? '#F9FAFB' : 'white')}
                   >
-                    <td className="py-4 px-6 whitespace-nowrap text-gray-700 font-medium">{entry.id}</td>
+                    {/* <td className="py-4 px-6 whitespace-nowrap text-gray-700 font-medium">{entry.id}</td> */}
                     <td className="py-4 px-6 whitespace-nowrap text-gray-600 font-semibold">{entry.userId}</td>
                     <td className="py-4 px-6 whitespace-nowrap text-gray-600 font-semibold">
                       {entry.technologyId} <span className="text-indigo-500 font-semibold">({entry.techName})</span>
