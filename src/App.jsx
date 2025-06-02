@@ -240,7 +240,7 @@ import QuestionsPage from "./pages/QuestionsPage";
 import InterviewSchedule from "./pages/InterviewSchedule";
 import UserTechnologyList from "./pages/UserTechnologyList";
 import Unauthorized from "./pages/Unauthorized"; // <- Make sure this file exists
-
+import InterviewQuestionModule from "./pages/InterviewQuestionModule"; 
 // Role-based utils
 import { isAdmin, isUser, isInterviewer } from "./utils/authUtils";
 
@@ -255,6 +255,7 @@ const Roles = lazy(() => import("./pages/Roles"));
 const UserRoles = lazy(() => import("./pages/UserRoles"));
 const UsersList = lazy(() => import("./pages/UsersList"));
 const Applications = lazy(() => import("./pages/Applications"));
+const Interviews = lazy(() => import("./pages/Interviews"));
 
 
 function App() {
@@ -322,8 +323,23 @@ function App() {
 
       <Route path="/openings" element={
         <ProtectedLayoutRoute
-          checkAccess={() => isAdmin() || isUser()|| isInterviewer()}
+          checkAccess={() => isAdmin() || isUser() || isInterviewer()}
           element={<Suspense fallback={<LoadingSpinner />}><Openings /></Suspense>}
+        />
+      } />
+
+      <Route path="/InterviewQuestionModule" element={
+        <ProtectedLayoutRoute
+          checkAccess={() => isAdmin() || isUser() || isInterviewer()}
+          element={<Suspense fallback={<LoadingSpinner />}><InterviewQuestionModule /></Suspense>}
+        />
+      } />
+
+
+      <Route path="/interviews" element={
+        <ProtectedLayoutRoute
+          checkAccess={() => isAdmin() || isUser() || isInterviewer()}
+          element={<Suspense fallback={<LoadingSpinner />}><Interviews /></Suspense>}
         />
       } />
 

@@ -172,6 +172,15 @@ const Layout = ({ children }) => {
               User Roles
             </Link>
           </li>
+           <li>
+            <Link
+              to="/InterviewQuestionModule"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaUserEdit className="mr-2" size={16} />
+              InterView Questions
+            </Link>
+          </li>
           <li>
             <Link
               to="/questions"
@@ -233,6 +242,15 @@ const Layout = ({ children }) => {
             >
               <FaFileAlt className="mr-2" size={16} />
               Applications
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/interviews"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaUserShield className="mr-2" size={16} />
+              Interviews
             </Link>
           </li>
           <li>
@@ -321,6 +339,15 @@ const Layout = ({ children }) => {
               Applications
             </Link>
           </li>
+           <li>
+            <Link
+              to="/interviews"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaUserShield className="mr-2" size={16} />
+              Interviews
+            </Link>
+          </li>
         </ul>
       )}
     </li>
@@ -350,6 +377,15 @@ const Layout = ({ children }) => {
             >
               <FaUserEdit className="mr-2" size={16} />
               Update Profile
+            </Link>
+          </li>
+           <li>
+            <Link
+              to="/InterviewQuestionModule"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaUserEdit className="mr-2" size={16} />
+              InterView Questions
             </Link>
           </li>
           <li>
@@ -396,6 +432,15 @@ const Layout = ({ children }) => {
             >
               <FaCalendarCheck className="mr-2" size={16} />
               Interview Schedule
+            </Link>
+          </li>
+           <li>
+            <Link
+              to="/interviews"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              <FaUserShield className="mr-2" size={16} />
+              Interviews
             </Link>
           </li>
         </ul>
