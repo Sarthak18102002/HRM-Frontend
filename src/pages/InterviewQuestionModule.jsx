@@ -35,13 +35,25 @@ const InterviewQuestionModule = () => {
   }, []);
 
   useEffect(() => {
-    setLanguages(['Python', 'Java', 'Cpp']);
+    setLanguages([
+      'Python',
+      'Java',
+      'Cpp',
+      'JavaScript',
+      'Flutter',
+      'ReactJs',
+      'AngularJs'
+    ]);
   }, []);
 
   useEffect(() => {
     if (selectedLanguage === 'Python') setConcepts(['Loops', 'Functions', 'OOP']);
     else if (selectedLanguage === 'Java') setConcepts(['Inheritance', 'Interfaces', 'Exceptions']);
     else if (selectedLanguage === 'Cpp') setConcepts(['Pointers', 'Templates', 'STL']);
+    else if (selectedLanguage === 'JavaScript') setConcepts(['Promises', 'Async/Await', 'DOM']);
+    else if (selectedLanguage === 'Flutter') setConcepts(['Widgets', 'State Management', 'Navigation']);
+    else if (selectedLanguage === 'ReactJs') setConcepts(['Hooks', 'Components', 'State', 'Props']);
+    else if (selectedLanguage === 'AngularJs') setConcepts(['Directives', 'Services', 'Modules']);
     else setConcepts([]);
     setSelectedConcept('');
   }, [selectedLanguage]);
@@ -53,21 +65,18 @@ const InterviewQuestionModule = () => {
       return;
     }
     try {
-      let response;
-      if (csvFile) {
-        const formData = new FormData();
-        formData.append('file', csvFile);
-        response = await axios.post('/questions/start-interview', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-      } else {
-        response = await axios.post('/questions/start-interview-url', {
-          datasetUrl,
-          language: selectedLanguage,
-          concept: selectedConcept
-        });
-      }
-      setCurrentQuestion(response.data);
+      const formData = new FormData();
+      if (csvFile) formData.append('file', csvFile);
+      else formData.append('file', new Blob([])); // send empty file if not provided
+
+      formData.append('datasetUrl', datasetUrl || '');
+
+      const response = await axios.post('/questions/start-interview', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      // If your backend uses ApiResponse<QuestionDTO>
+      setCurrentQuestion(response.data.data || response.data);
       setInterviewStarted(true);
     } catch (error) {
       setError("Failed to start interview. Please check your input.");
@@ -137,6 +146,7 @@ const InterviewQuestionModule = () => {
         {!interviewStarted ? (
           <div className="flex flex-col items-center">
             {/* Language Dropdown */}
+            <label className="w-full text-left font-semibold text-indigo-700 mb-1">Language</label>
             <select
               value={selectedLanguage}
               onChange={e => setSelectedLanguage(e.target.value)}
@@ -149,24 +159,30 @@ const InterviewQuestionModule = () => {
             </select>
             {/* Concept Dropdown */}
             {selectedLanguage && (
-              <select
-                value={selectedConcept}
-                onChange={e => setSelectedConcept(e.target.value)}
-                className="border-2 border-indigo-200 rounded-lg px-4 py-3 mb-4 w-full"
-              >
-                <option value="">Select Concept</option>
-                {concepts.map(concept => (
-                  <option key={concept} value={concept}>{concept}</option>
-                ))}
-              </select>
+              <>
+                <label className="w-full text-left font-semibold text-indigo-700 mb-1">Concept</label>
+                <select
+                  value={selectedConcept}
+                  onChange={e => setSelectedConcept(e.target.value)}
+                  className="border-2 border-indigo-200 rounded-lg px-4 py-3 mb-4 w-full"
+                >
+                  <option value="">Select Concept</option>
+                  {concepts.map(concept => (
+                    <option key={concept} value={concept}>{concept}</option>
+                  ))}
+                </select>
+              </>
             )}
             {/* File Upload */}
+            {/* File Upload */}
+            <label className="w-full text-left font-semibold text-indigo-700 mb-1">Upload CSV File</label>
             <input
-              type="file"
+              type="file" 
               accept=".csv"
               className="border-2 border-indigo-200 rounded-lg px-4 py-3 mb-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
               onChange={e => setCsvFile(e.target.files[0])}
             />
+            <span className="text-xs text-indigo-700 mb-1 block">Please choose only <b>.csv</b> file.</span>
             <div className="text-gray-500 mb-2">or</div>
             {/* Dataset URL */}
             <input
