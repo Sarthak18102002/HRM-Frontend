@@ -33,6 +33,7 @@ const Modal = ({
           }}
           className="space-y-6"
         >
+           <label className="block text-sm font-medium text-gray-700 mb-1">Job Description</label>
           <input
             type="text"
             name="jobDescription"
@@ -43,6 +44,7 @@ const Modal = ({
             className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300
                transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
           />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Job Type</label>
           <input
             type="text"
             name="jobType"
@@ -53,6 +55,7 @@ const Modal = ({
             className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300
                transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
           />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Years Of Experience</label>
           <input
             type="number"
             name="yearOfExperience"
@@ -66,6 +69,7 @@ const Modal = ({
           />
 
           {/* Technology Dropdown */}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Technology</label>
           <select
             name="tech_id"
             value={formData.tech_id}

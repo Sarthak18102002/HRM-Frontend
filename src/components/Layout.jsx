@@ -20,8 +20,10 @@ import {
   FaUserEdit,
   FaUser,
   FaFileAlt,
+  FaVideo ,
   FaUnlockAlt,
   FaCalendarCheck,
+  FaRegCalendarAlt,
 } from "react-icons/fa";
 
 const Layout = ({ children }) => {
@@ -96,9 +98,29 @@ const Layout = ({ children }) => {
     }
   };
 
-  const navItems = [
-    { path: "/dashboard", icon: <Briefcase size={20} />, text: "Dashboard" },
+  // Define all possible nav items with allowed roles
+  const allNavItems = [
+    { path: "/dashboard", icon: <Briefcase size={20} />, text: "Dashboard", roles: ["ADMIN", "USER", "INTERVIEWER"] },
+    { path: "/roles", icon: <FaUserShield className="mr-2" size={16} />, text: "Roles", roles: ["ADMIN"] },
+    { path: "/user-roles", icon: <FaUsersCog className="mr-2" size={16} />, text: "User Roles", roles: ["ADMIN"] },
+    { path: "/users-list", icon: <FaUsers className="mr-2" size={16} />, text: "Users List", roles: ["ADMIN"] },
+    { path: "/technologies", icon: <FaLaptopCode className="mr-2" size={16} />, text: "Technologies", roles: ["ADMIN", "USER", "INTERVIEWER"] },
+    { path: "/openings", icon: <FaBriefcase className="mr-2" size={16} />, text: "Openings", roles: ["ADMIN", "USER", "INTERVIEWER"] },
+    { path: "/profile/update", icon: <FaUserEdit className="mr-2" size={16} />, text: "Update Profile", roles: ["ADMIN", "USER", "INTERVIEWER"] },
+    { path: "/profile", icon: <FaUser className="mr-2" size={16} />, text: "Profile", roles: ["ADMIN", "USER", "INTERVIEWER"] },
+    { path: "/applications", icon: <FaFileAlt className="mr-2" size={16} />, text: "Applications", roles: ["ADMIN", "USER", "INTERVIEWER"] },
+    { path: "/InterviewQuestionModule", icon: <FaUserEdit className="mr-2" size={16} />, text: "Interview Questions", roles: ["ADMIN", "INTERVIEWER"] },
+    { path: "/offer-letter", icon: <FaFileAlt className="mr-2" size={16} />, text: "Offer Letter", roles: ["ADMIN"] },
+    { path: "/meeting-room", icon: <FaVideo  className="mr-2" size={16} />, text: "Video Conferencing", roles: ["ADMIN"] },
+    { path: "/interviews", icon: <FaUserShield className="mr-2" size={16} />, text: "Interviews", roles: ["ADMIN", "USER", "INTERVIEWER"] },
+    { path: "/schedule-interview", icon: <FaCalendarCheck className="mr-2" size={16} />, text: "Interview Schedule", roles: ["ADMIN", "INTERVIEWER"] },
+    { path: "/user-technologies", icon: <FaCalendarCheck className="mr-2" size={16} />, text: "User Technologies", roles: ["ADMIN"] },
+    { path: "/forgot-password", icon: <FaUnlockAlt className="mr-2" size={16} />, text: "Forgot Password", roles: ["ADMIN", "USER", "INTERVIEWER"] },
+     { path: "/calender", icon: <FaRegCalendarAlt className="mr-2" size={16} />, text: "Calender", roles:["ADMIN", "USER", "INTERVIEWER"] },
   ];
+
+  // Helper to check if user has access to a nav item
+  const hasAccess = (item) => item.roles.some((role) => userRole.includes(role));
 
   const renderSettingsDropdown = () => (
     <li className="relative">
@@ -163,6 +185,7 @@ const Layout = ({ children }) => {
               Roles
             </Link>
           </li>
+         
           <li>
             <Link
               to="/user-roles"
@@ -170,6 +193,15 @@ const Layout = ({ children }) => {
             >
               <FaUsersCog className="mr-2" size={16} />
               User Roles
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/calender"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              < FaRegCalendarAlt className="mr-2" size={16} />
+             Calender
             </Link>
           </li>
            <li>
@@ -181,7 +213,27 @@ const Layout = ({ children }) => {
               InterView Questions
             </Link>
           </li>
-          <li>
+           <li>
+              <Link
+                to="/offer-letter"
+                onClick={toggleSidebar}
+                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <FaFileAlt className="mr-2" size={16} />
+                OfferLetter
+              </Link>
+              </li>
+               <li>
+              <Link
+                to="/meeting-room"
+                onClick={toggleSidebar}
+                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <FaFileAlt className="mr-2" size={16} />
+                Video Conferencing
+              </Link>
+            </li>
+          {/* <li>
             <Link
               to="/questions"
               className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
@@ -189,7 +241,7 @@ const Layout = ({ children }) => {
               <FaUsersCog className="mr-2" size={16} />
               Question
             </Link>
-          </li>
+          </li> */}
           <li>
             <Link
               to="/users-list"
@@ -332,6 +384,15 @@ const Layout = ({ children }) => {
           </li>
           <li>
             <Link
+              to="/calender"
+              className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+            >
+              < FaRegCalendarAlt className="mr-2" size={16} />
+             Calender
+            </Link>
+          </li>
+          <li>
+            <Link
               to="/applications"
               className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
             >
@@ -407,7 +468,8 @@ const Layout = ({ children }) => {
                 Openings
               </Link>
             </li>
-          <li>
+            
+          {/* <li>
             <Link
               to="/questions"
               className="flex items-center px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
@@ -415,7 +477,7 @@ const Layout = ({ children }) => {
               <FaUsersCog className="mr-2" size={16} />
               Question Answers
             </Link>
-          </li>
+          </li> */}
           <li>
             <Link
               to="/applications"
@@ -448,6 +510,24 @@ const Layout = ({ children }) => {
     </li>
   );
 
+  // Get sorted nav items (no grouping)
+  const sortedNavItems = allNavItems
+    .filter((item) => item.path !== "/forgot-password")
+    .filter(hasAccess)
+    .sort((a, b) => a.text.localeCompare(b.text));
+
+  // Helper: group nav items by first letter
+  const groupedNavItems = allNavItems
+    .filter((item) => item.path !== "/forgot-password")
+    .filter(hasAccess)
+    .sort((a, b) => a.text.localeCompare(b.text))
+    .reduce((acc, item) => {
+      const letter = item.text[0].toUpperCase();
+      if (!acc[letter]) acc[letter] = [];
+      acc[letter].push(item);
+      return acc;
+    }, {});
+
   const DesktopSidebarContent = () => (
     <div className="flex flex-col h-screen overflow-hidden">
       {/* Header */}
@@ -474,24 +554,25 @@ const Layout = ({ children }) => {
       <div className="flex-1 overflow-y-auto px-2 scrollbar-hidden">
         <nav className="mt-4">
           <ul>
-            {navItems.map(({ path, icon, text }) => (
-              <li key={path}>
-                <Link
-                  to={path}
-                  className={`flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors ${location.pathname === path ? "bg-indigo-700" : ""
-                    }`}
-                >
-                  <span className="mr-3">{icon}</span>
-                  {!isCollapsed && <span>{text}</span>}
-                </Link>
+            {Object.keys(groupedNavItems).sort().map((letter) => (
+              <li key={letter}>
+                {/* <div className="px-3 py-1 text-xs font-bold text-indigo-300 uppercase">{letter}</div> */}
+                <ul>
+                  {groupedNavItems[letter].map(({ path, icon, text }) => (
+                    <li key={path}>
+                      <Link
+                        to={path}
+                        className={`flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors ${location.pathname === path ? "bg-indigo-700" : ""}`}
+                      >
+                        <span className="mr-3">{icon}</span>
+                        {!isCollapsed && <span>{text}</span>}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </li>
             ))}
-
-            {userRole.includes("ADMIN") && adminNavItems}
-            {userRole.includes("USER") && renderUserDropdown()}
-            {userRole.includes("INTERVIEWER") && renderInterviewerDropdown()}
             {renderSettingsDropdown()}
-
             <li>
               <button
                 onClick={handleLogout}
@@ -506,7 +587,6 @@ const Layout = ({ children }) => {
       </div>
     </div>
   );
-
 
   const MobileSidebarContent = () => (
     <div className="flex flex-col h-full w-64 bg-indigo-900 text-white shadow-lg z-50 fixed top-0 left-0 overflow-y-auto">
@@ -529,173 +609,35 @@ const Layout = ({ children }) => {
 
       <nav className="mt-6 flex-grow">
         <ul>
-          {navItems.map(({ path, icon, text }) => (
-            <li key={path}>
+          {/* Always show Dashboard first if user has access */}
+          {hasAccess(allNavItems[0]) && (
+            <li key={allNavItems[0].path}>
               <Link
-                to={path}
+                to={allNavItems[0].path}
                 onClick={toggleSidebar}
-                className={`flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors ${location.pathname === path ? "bg-indigo-700" : ""
-                  }`}
+                className={`flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors ${location.pathname === allNavItems[0].path ? "bg-indigo-700" : ""}`}
               >
-                <span className="mr-3">{icon}</span>
-                <span>{text}</span>
-              </Link>
-            </li>
-          ))}
-          {userRole.includes("ADMIN") && (
-            <li>
-              <Link
-                to="/roles"
-                onClick={toggleSidebar}
-                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <FaUserShield className="mr-2" size={16} />
-                Roles
+                <span className="mr-3">{allNavItems[0].icon}</span>
+                <span>{allNavItems[0].text}</span>
               </Link>
             </li>
           )}
-          {userRole.includes("ADMIN") && (
-            <li>
-              <Link
-                to="/user-roles"
-                onClick={toggleSidebar}
-                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <FaUsersCog className="mr-2" size={16} />
-                User Roles
-              </Link>
-            </li>
-          )}
-          {userRole.includes("ADMIN") && (
-            <li>
-              <Link
-                to="/users-list"
-                onClick={toggleSidebar}
-                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <FaUsers className="mr-2" size={16} />
-                Users List
-              </Link>
-            </li>
-          )}
-          {userRole.includes("ADMIN") && (
-            <li>
-              <Link
-                to="/technologies"
-                onClick={toggleSidebar}
-                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <FaLaptopCode className="mr-2" size={16} />
-                Technologies
-              </Link>
-            </li>
-          )}
-          {userRole.includes("ADMIN") && (
-            <li>
-              <Link
-                to="/openings"
-                onClick={toggleSidebar}
-                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <FaBriefcase className="mr-2" size={16} />
-                Openings
-              </Link>
-            </li>
-          )}
-          {userRole.includes("ADMIN") && (
-            <li>
-              <Link
-                to="/profile/update"
-                onClick={toggleSidebar}
-                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <FaUserEdit className="mr-2" size={16} />
-                Update Profile
-              </Link>
-            </li>
-          )}
-          {userRole.includes("ADMIN") && (
-            <li>
-              <Link
-                to="/profile"
-                onClick={toggleSidebar}
-                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <FaUser className="mr-2" size={16} />
-                Profile
-              </Link>
-            </li>
-          )}
-          {userRole.includes("ADMIN") && (
-            <li>
-              <Link
-                to="/applications"
-                onClick={toggleSidebar}
-                className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <FaFileAlt className="mr-2" size={16} />
-                Applications
-              </Link>
-            </li>
-          )}
-
-          {userRole.includes("USER") && (
-            <>
-              <li>
+          {/* Render the rest, except Dashboard */}
+          {sortedNavItems
+            .filter((item) => item.path !== "/dashboard")
+            .map(({ path, icon, text }) => (
+              <li key={path}>
                 <Link
-                  to="/profile/update"
+                  to={path}
                   onClick={toggleSidebar}
-                  className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
+                  className={`flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors ${location.pathname === path ? "bg-indigo-700" : ""}`}
                 >
-                  <FaUserEdit className="mr-2" size={16} />
-                  Update Profile
+                  <span className="mr-3">{icon}</span>
+                  <span>{text}</span>
                 </Link>
               </li>
-              <li>
-                <Link
-                  to="/profile"
-                  onClick={toggleSidebar}
-                  className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  <FaUser className="mr-2" size={16} />
-                  Profile
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/openings"
-                  onClick={toggleSidebar}
-                  className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  <FaBriefcase className="mr-2" size={16} />
-                  Openings
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/technologies"
-                  onClick={toggleSidebar}
-                  className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  <FaLaptopCode className="mr-2" size={16} />
-                  Technologies
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/applications"
-                  onClick={toggleSidebar}
-                  className="flex items-center p-3 rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  <FaFileAlt className="mr-2" size={16} />
-                  Applications
-                </Link>
-              </li>
-            </>
-          )}
-
+            ))}
           {renderSettingsDropdown()}
-
           <li>
             <button
               onClick={() => {

@@ -45,9 +45,12 @@ const ForgotPassword = () => {
           <h2 className="text-4xl font-extrabold text-indigo-700 mb-2 tracking-wide">
             Forgot Password
           </h2>
-          <p className="text-indigo-600 text-lg font-medium">
+          <h2 className="text-xs  text-indigo-700 mb-2 tracking-wide">
             Enter your email address and we’ll send you a link to reset your password.
-          </p>
+          </h2>
+          {/* <p className="text-indigo-600 text-lg font-medium">
+            
+          </p> */}
         </div>
 
         {message && (

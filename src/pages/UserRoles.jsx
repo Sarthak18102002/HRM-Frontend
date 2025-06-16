@@ -103,9 +103,17 @@ const UserRoles = () => {
       setIsEdit(false);
       setShowModal(false);
       fetchUserRoles();
-    } catch {
-      setError("Operation failed.");
+    } catch (err) {
+      if (err.response?.status === 409) {
+        setError(
+          err.response?.data?.message ||
+          "User already has a role assigned."
+        );
+      } else {
+        setError("Operation failed.");
+      }
       setSuccess("");
+      // Do NOT close modal or reset form here!
     }
   };
 
@@ -191,6 +199,11 @@ const UserRoles = () => {
             </button>
 
             <h2 className="text-2xl font-bold text-indigo-800 mb-6 text-center">Assign Role</h2>
+
+            {/* Show error here */}
+            {error && (
+              <div className="text-red-600 text-center font-semibold mb-2">{error}</div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
