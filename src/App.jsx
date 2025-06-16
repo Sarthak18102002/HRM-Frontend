@@ -90,7 +90,7 @@ function App() {
 
        <Route path="/meeting-room" element={
         <ProtectedLayoutRoute
-          checkAccess={() => isAdmin() || isInterviewer()}
+          checkAccess={() => isAdmin() || isUser() || isInterviewer()}  
           element={<Suspense fallback={<LoadingSpinner />}><MeetingRoom /></Suspense>}
         />
       } />

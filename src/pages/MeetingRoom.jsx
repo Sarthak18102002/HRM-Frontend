@@ -504,7 +504,7 @@ function MeetingRoom() {
             e.preventDefault();
             handleScheduleMeeting();
           }}
-          className="space-y-6"
+          className="space-y-8"
         >
           <h2 className="text-2xl font-bold text-center mb-4 text-indigo-700 tracking-wide">
             Schedule a Meeting
@@ -530,9 +530,17 @@ function MeetingRoom() {
             <div className="text-green-700 font-semibold">
               Meeting scheduled successfully!
               {scheduledLink && (
-                <div className="mt-2 break-all">
-                  <span className="font-bold">Join Link: </span>
-                  <a href={scheduledLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                <div
+                  className="mt-2 whitespace-nowrap overflow-x-auto"
+                  style={{ fontSize: "1.1rem", fontWeight: "bold" }}
+                >
+                  Join Link:&nbsp;
+                  <a
+                    href={scheduledLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline"
+                  >
                     {scheduledLink}
                   </a>
                 </div>
@@ -573,7 +581,7 @@ function MeetingRoom() {
       {/* Popup */}
       {popup.open && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border-4 border-indigo-300 animate-fadeIn">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-xl border-4 border-indigo-300 animate-fadeIn">
             {renderPopupContent()}
           </div>
         </div>

@@ -111,7 +111,7 @@ const Layout = ({ children }) => {
     { path: "/applications", icon: <FaFileAlt className="mr-2" size={16} />, text: "Applications", roles: ["ADMIN", "USER", "INTERVIEWER"] },
     { path: "/InterviewQuestionModule", icon: <FaUserEdit className="mr-2" size={16} />, text: "Interview Questions", roles: ["ADMIN", "INTERVIEWER"] },
     { path: "/offer-letter", icon: <FaFileAlt className="mr-2" size={16} />, text: "Offer Letter", roles: ["ADMIN"] },
-    { path: "/meeting-room", icon: <FaVideo  className="mr-2" size={16} />, text: "Video Conferencing", roles: ["ADMIN"] },
+    { path: "/meeting-room", icon: <FaVideo  className="mr-2" size={16} />, text: "Video Conferencing", roles:  ["ADMIN", "USER", "INTERVIEWER"] },
     { path: "/interviews", icon: <FaUserShield className="mr-2" size={16} />, text: "Interviews", roles: ["ADMIN", "USER", "INTERVIEWER"] },
     { path: "/schedule-interview", icon: <FaCalendarCheck className="mr-2" size={16} />, text: "Interview Schedule", roles: ["ADMIN", "INTERVIEWER"] },
     { path: "/user-technologies", icon: <FaCalendarCheck className="mr-2" size={16} />, text: "User Technologies", roles: ["ADMIN"] },
@@ -382,6 +382,7 @@ const Layout = ({ children }) => {
               Technologies
             </Link>
           </li>
+          
           <li>
             <Link
               to="/calender"
