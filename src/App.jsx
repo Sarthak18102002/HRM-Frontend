@@ -19,7 +19,7 @@ import Unauthorized from "./pages/Unauthorized";
 import InterviewQuestionModule from "./pages/InterviewQuestionModule"; 
 import OfferLetter from "./pages/OfferLetter"; 
 import MeetingRoom from "./pages/MeetingRoom";
-import Calender from "./pages/Calender";
+import Calendar from "./pages/Calendar";
 
 // Role-based utils
 import { isAdmin, isUser, isInterviewer } from "./utils/authUtils";
@@ -95,10 +95,10 @@ function App() {
         />
       } />
 
-       <Route path="/calender" element={
+       <Route path="/calendar" element={
         <ProtectedLayoutRoute
           checkAccess={() => isAdmin() || isUser() || isInterviewer()}
-          element={<Suspense fallback={<LoadingSpinner />}><Calender /></Suspense>}
+          element={<Suspense fallback={<LoadingSpinner />}><Calendar /></Suspense>}
         />
       } />
 

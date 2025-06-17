@@ -116,7 +116,7 @@ const Layout = ({ children }) => {
     { path: "/schedule-interview", icon: <FaCalendarCheck className="mr-2" size={16} />, text: "Interview Schedule", roles: ["ADMIN", "INTERVIEWER"] },
     { path: "/user-technologies", icon: <FaCalendarCheck className="mr-2" size={16} />, text: "User Technologies", roles: ["ADMIN"] },
     { path: "/forgot-password", icon: <FaUnlockAlt className="mr-2" size={16} />, text: "Forgot Password", roles: ["ADMIN", "USER", "INTERVIEWER"] },
-     { path: "/calender", icon: <FaRegCalendarAlt className="mr-2" size={16} />, text: "Calender", roles:["ADMIN", "USER", "INTERVIEWER"] },
+     { path: "/calendar", icon: <FaRegCalendarAlt className="mr-2" size={16} />, text: "Calendar", roles:["ADMIN", "USER", "INTERVIEWER"] },
   ];
 
   // Helper to check if user has access to a nav item
