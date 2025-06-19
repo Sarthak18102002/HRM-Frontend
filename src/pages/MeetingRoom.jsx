@@ -1,594 +1,414 @@
-import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import { connect, createLocalVideoTrack, LocalDataTrack } from "twilio-video";
-import Layout from "../components/Layout";
+import React, { useEffect, useRef, useState } from 'react';
+import axios from 'axios';
+import { connect, createLocalVideoTrack, createLocalAudioTrack } from 'twilio-video';
+import { LocalDataTrack } from 'twilio-video';
+import { useNavigate } from 'react-router-dom'; // Add this import
 import { HiVideoCamera, HiUserGroup } from "react-icons/hi2";
 import { FaChalkboardTeacher } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
 
-function MeetingRoom() {
-  const [step, setStep] = useState("initial"); // 'initial', 'create', 'join', 'created', 'connected'
-  const [roomInput, setRoomInput] = useState("");
-  const [identityInput, setIdentityInput] = useState("");
-  const [joinLinkInput, setJoinLinkInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [popup, setPopup] = useState({ open: false, message: "", success: false });
-  const [roomName, setRoomName] = useState("");
-  const [token, setToken] = useState("");
+const MeetingRoom = () => {
+  const [identity, setIdentity] = useState('user-' + Math.floor(Math.random() * 1000));
+  const [roomName, setRoomName] = useState('');
+  const [room, setRoom] = useState(null);
   const [joined, setJoined] = useState(false);
-  const [roomInstance, setRoomInstance] = useState(null);
+  const [participants, setParticipants] = useState([]);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [joinUrl, setJoinUrl] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
+  const [showJoinPopup, setShowJoinPopup] = useState(false);
+  const [showCreatePopup, setShowCreatePopup] = useState(false);
+  const [scheduledTime, setScheduledTime] = useState('');
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const localVideoTrackRef = useRef(null);
+  const localAudioTrackRef = useRef(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [message, setMessage] = useState('');
+  const dataTrackRef = useRef(null);
   const navigate = useNavigate(); // Add this line
 
-  // Chat state
-  const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState([]);
-  const dataTrackRef = useRef(null);
+  const handleScheduleMeeting = async () => {
+    try {
+      const response = await axios.post('http://localhost:8080/api/video/schedule-meeting', {
+        roomName,
+        scheduledTime,
+      });
+      alert('Meeting Scheduled Successfully!');
+      setJoinUrl(response.data.joinUrl);
+    } catch (error) {
+      console.error(error);
+      alert('Failed to schedule meeting.');
+    }
+  };
 
-  // Screen share state
-  const [isSharing, setIsSharing] = useState(false);
-  const screenTrackRef = useRef(null);
+  const createRoom = async () => {
+    try {
+      const res = await axios.post('http://localhost:8080/api/video/create-room', null, {
+        params: { roomName },
+      });
+      setJoinUrl(res.data.joinUrl);
+      setShowPopup(true);
+    } catch (err) {
+      console.error('Create room error:', err);
+      alert('Failed to create room');
+    }
+  };
+  const sendMessage = () => {
+    if (message.trim() !== '' && dataTrackRef.current) {
+      dataTrackRef.current.send(message);
+      setChatMessages(prev => [...prev, { sender: 'You', text: message }]);
+      setMessage('');
+    }
+  };
+  const joinRoom = async () => {
+    setIsJoining(true);
+    try {
+      const res = await axios.get('http://localhost:8080/api/video/generate-token', {
+        params: { identity, roomName },
+      });
+      const token = res.data.token;
+      const videoTrack = await createLocalVideoTrack();
+      const audioTrack = await createLocalAudioTrack();
 
-  // Schedule state
-  const [scheduleRoomInput, setScheduleRoomInput] = useState("");
-  const [scheduleTimeInput, setScheduleTimeInput] = useState("");
-  const [scheduleLoading, setScheduleLoading] = useState(false);
-  const [scheduleSuccess, setScheduleSuccess] = useState(null);
-  const [scheduledLink, setScheduledLink] = useState(""); // add this state
+      localVideoTrackRef.current = videoTrack;
+      localAudioTrackRef.current = audioTrack;
 
-  // Connect to room after joining
-  useEffect(() => {
-    if (token && roomName && joined) {
-      // Create a DataTrack for chat
-      const dataTrack = new LocalDataTrack();
-      dataTrackRef.current = dataTrack;
 
-      connect(token, {
+      dataTrackRef.current = new LocalDataTrack();
+
+      const connectedRoom = await connect(token, {
         name: roomName,
-        tracks: [dataTrack],
-      }).then((room) => {
-        setRoomInstance(room);
+        tracks: [videoTrack, audioTrack, dataTrackRef.current],
+      });
 
-        // Show local video
-        createLocalVideoTrack().then((localVideoTrack) => {
-          const videoElement = localVideoTrack.attach();
-          videoElement.style.width = "100%";
-          videoElement.style.height = "100%";
-          videoElement.style.objectFit = "cover";
-          videoElement.style.borderRadius = "inherit";
-          videoElement.style.margin = "0";
-          videoElement.style.transform = "scaleX(-1)";
-          document.getElementById("local-video").innerHTML = "";
-          document.getElementById("local-video").appendChild(videoElement);
-        });
+      setRoom(connectedRoom);
+      setJoined(true);
+      setShowJoinPopup(false);
+      setIsJoining(false);
 
-        // Helper to attach remote participant tracks
-        function attachParticipantTracks(participant) {
-          participant.tracks.forEach((publication) => {
-            if (publication.track && publication.track.kind === "video") {
-              const video = publication.track.attach();
-              video.style.width = "100%";
-              video.style.height = "100%";
-              video.style.objectFit = "cover";
-              video.style.borderRadius = "inherit";
-              video.style.margin = "0";
-              document.getElementById("remote-videos").appendChild(video);
-            }
-          });
-          participant.on("trackSubscribed", (track) => {
-            if (track.kind === "video") {
-              const video = track.attach();
-              video.style.width = "100%";
-              video.style.height = "100%";
-              video.style.objectFit = "cover";
-              video.style.borderRadius = "inherit";
-              video.style.margin = "0";
-              document.getElementById("remote-videos").appendChild(video);
-            }
-          });
-        }
 
-        // Attach already connected participants
-        room.participants.forEach(attachParticipantTracks);
 
-        // Attach new participants as they connect
-        room.on("participantConnected", attachParticipantTracks);
+      const handleParticipant = (participant) => {
+        setParticipants(prev => [...prev, participant.identity]);
 
-        // Chat: Listen for DataTrack messages
-        room.on("trackSubscribed", (track, publication, participant) => {
-          if (track.kind === "data") {
-            track.on("message", (msg) => {
-              setChatMessages((prev) => [
-                ...prev,
-                { sender: participant.identity, text: msg },
-              ]);
+        participant.tracks.forEach(publication => {
+          if (publication.track.kind === 'data' && publication.isSubscribed) {
+            publication.track.on('message', data => {
+              setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
             });
           }
         });
 
-        // Listen for already published data tracks
-        room.participants.forEach((participant) => {
-          participant.tracks.forEach((publication) => {
-            if (
-              publication.track &&
-              publication.track.kind === "data" &&
-              publication.track !== dataTrack
-            ) {
-              publication.track.on("message", (msg) => {
-                setChatMessages((prev) => [
-                  ...prev,
-                  { sender: participant.identity, text: msg },
-                ]);
-              });
-            }
-          });
+        participant.on('trackSubscribed', track => {
+          if (track.kind === 'data') {
+            track.on('message', data => {
+              setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
+            });
+          }
         });
 
-        // Remove remote video on participant disconnect
-        room.on("participantDisconnected", (participant) => {
-          participant.tracks.forEach((publication) => {
-            if (publication.track && publication.track.kind === "video") {
-              publication.track.detach().forEach((el) => el.remove());
-            }
-          });
+        participant.on('trackUnsubscribed', track => {
+          if (track.kind !== 'data') {
+            track.detach().forEach(el => el.remove());
+          }
         });
+      };
+
+
+      connectedRoom.participants.forEach(handleParticipant);
+      connectedRoom.on('participantConnected', handleParticipant);
+      connectedRoom.on('participantDisconnected', participant => {
+        setParticipants(prev => prev.filter(p => p !== participant.identity));
       });
-    }
-    // eslint-disable-next-line
-  }, [token, roomName, joined]);
 
-  // Chat send handler
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (chatInput.trim() && dataTrackRef.current) {
-      dataTrackRef.current.send(chatInput);
-      setChatMessages((prev) => [
-        ...prev,
-        { sender: "You", text: chatInput },
-      ]);
-      setChatInput("");
-    }
-  };
-  const handleDisconnect = () => {
-    // 1. Stop all local tracks (camera, mic)
-    if (roomInstance && roomInstance.localParticipant) {
-      roomInstance.localParticipant.tracks.forEach(publication => {
-        if (publication.track && typeof publication.track.stop === "function") {
+      connectedRoom.on('disconnected', () => {
+        connectedRoom.localParticipant.tracks.forEach(publication => {
           publication.track.stop();
-        }
-        if (publication.track) {
-          roomInstance.localParticipant.unpublishTrack(publication.track);
-        }
+          publication.track.detach().forEach(el => el.remove());
+        });
+        setJoined(false);
+        setRoom(null);
+        setParticipants([]);
       });
-    }
 
-    // 2. Stop screen sharing if active
-    if (screenTrackRef.current) {
-      screenTrackRef.current.stop();
-      screenTrackRef.current = null;
-      setIsSharing(false);
-    }
-
-    // 3. Disconnect from Twilio room
-    if (roomInstance) {
-      roomInstance.disconnect();
-      setRoomInstance(null);
-    }
-
-    // 4. Remove all video elements from UI
-    const localDiv = document.getElementById("local-video");
-    if (localDiv) localDiv.innerHTML = "";
-    const remoteDiv = document.getElementById("remote-videos");
-    if (remoteDiv) remoteDiv.innerHTML = "";
-
-    // 5. Reset state to home screen
-    setJoined(false);
-    setStep("initial");
-    setRoomName("");
-    setToken("");
-    setChatMessages([]);
-    setIdentityInput("");
-    setRoomInput("");
-    setJoinLinkInput("");
-    setScheduleRoomInput("");
-    setScheduleTimeInput("");
-    setScheduleSuccess(null);
-    setScheduledLink("");
-  };
-  // Screen sharing handler
-  const handleScreenShare = async () => {
-    if (!roomInstance) return;
-    if (!isSharing) {
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia();
-        const screenTrack = stream.getTracks()[0];
-        screenTrackRef.current = screenTrack;
-        roomInstance.localParticipant.publishTrack(screenTrack);
-
-        // Show screen in local video area
-        const screenVideo = document.createElement("video");
-        screenVideo.srcObject = new MediaStream([screenTrack]);
-        screenVideo.autoplay = true;
-        screenVideo.muted = true;
-        screenVideo.style.width = "120px";
-        screenVideo.style.borderRadius = "8px";
-        screenVideo.style.margin = "4px";
-        document.getElementById("local-video").appendChild(screenVideo);
-
-        setIsSharing(true);
-
-        screenTrack.onended = () => {
-          roomInstance.localParticipant.unpublishTrack(screenTrack);
-          setIsSharing(false);
-          screenVideo.remove();
-        };
-      } catch (err) {
-        // User cancelled screen share
-      }
-    } else {
-      // Stop sharing
-      if (screenTrackRef.current) {
-        roomInstance.localParticipant.unpublishTrack(screenTrackRef.current);
-        screenTrackRef.current.stop();
-        setIsSharing(false);
-        // Remove screen video element
-        const localVideoDiv = document.getElementById("local-video");
-        if (localVideoDiv) {
-          Array.from(localVideoDiv.children).forEach((el) => {
-            if (el.srcObject instanceof MediaStream) el.remove();
-          });
+    } catch (err) {
+      setIsJoining(false);
+      // Enhanced error handling for scheduled meetings
+      if (err.response && err.response.status === 400) {
+        const message = err.response.data.message || "";
+        if (message.toLowerCase().includes("not active") || message.toLowerCase().includes("before scheduled time")) {
+          alert("🚫 This meeting is scheduled for a future time. You cannot join before the scheduled time.");
+        } else {
+          alert(`🚫 ${message}`);
         }
+      } else {
+        console.error('Token fetch error:', err);
+        alert('🚫 This meeting is scheduled for a future time. You cannot join before the scheduled time.');
       }
     }
   };
 
-  const handleCreateRoomPopup = () => {
-    setRoomInput("");
-    setPopup({ open: true, message: "", success: true });
-    setStep("create");
+  const leaveRoom = () => {
+    if (room) {
+      room.disconnect();
+      setRoom(null);
+      setJoined(false);
+      setParticipants([]);
+       navigate('/meeting-room');
+    }
   };
 
-  const handleCreateRoom = async () => {
-    setLoading(true);
+  const toggleAudio = () => {
+    if (localAudioTrackRef.current) {
+      const enabled = !audioEnabled;
+      localAudioTrackRef.current.enable(enabled);
+      setAudioEnabled(enabled);
+    }
+  };
+
+  const toggleVideo = () => {
+    if (localVideoTrackRef.current) {
+      const enabled = !videoEnabled;
+      localVideoTrackRef.current.enable(enabled);
+      setVideoEnabled(enabled);
+    }
+  };
+
+  const shareScreen = async () => {
     try {
-      // Call your backend to create a room and get the join link
-      const res = await axios.post("http://localhost:8080/api/video/create-room", null, {
-        params: { roomName: roomInput },
-      });
-      setPopup({
-        open: true,
-        message: "",
-        success: true,
-        link: res.data.joinUrl, // Make sure your backend returns joinUrl
-      });
-      setStep("created");
+      const stream = await navigator.mediaDevices.getDisplayMedia();
+      const screenTrack = stream.getTracks()[0];
+
+      room.localParticipant.publishTrack(screenTrack);
+
+      screenTrack.onended = () => {
+        room.localParticipant.unpublishTrack(screenTrack);
+        screenTrack.stop();
+      };
     } catch (err) {
-      setPopup({
-        open: true,
-        message: "Failed to create room. It may already exist.",
-        success: false,
-      });
-    } finally {
-      setLoading(false);
+      console.error('Screen sharing failed', err);
     }
   };
 
-  const handleJoinRoomPopup = () => {
-    setJoinLinkInput("");
-    setIdentityInput("");
-    setPopup({ open: true, message: "", success: true });
-    setStep("join");
-  };
-
-  const handleJoinRoom = async () => {
-    setLoading(true);
-    setPopup({ open: false, message: "", success: false });
-    try {
-      const url = new URL(joinLinkInput);
-      const roomNameParam = url.searchParams.get("roomName");
-      if (!roomNameParam) throw new Error("Invalid join link");
-      setRoomName(roomNameParam);
-
-      const response = await axios.get("http://localhost:8080/api/video/generate-token", {
-        params: { identity: identityInput, roomName: roomNameParam },
-      });
-
-      setToken(response.data.token);
-      setJoined(true);
-      setPopup({ open: false, message: "", success: true });
-      setStep("connected");
-    } catch (err) {
-      // Check for backend error message
-      const errorMsg =
-        err.response?.data?.message ||
-        "Failed to join room. Please check the link or try again.";
-      setPopup({ open: true, message: errorMsg, success: false });
-    } finally {
-      setLoading(false);
+  // Attach local video after joining
+  useEffect(() => {
+    if (joined && localVideoTrackRef.current && localVideoRef.current) {
+      localVideoRef.current.innerHTML = '';
+      localVideoRef.current.appendChild(localVideoTrackRef.current.attach());
     }
-  };
+  }, [joined]);
 
-  // Schedule Meeting handler
-  const handleScheduleMeetingPopup = () => {
-    setScheduleRoomInput("");
-    setScheduleTimeInput("");
-    setScheduleSuccess(null);
-    setPopup({ open: true, message: "", success: true });
-    setStep("schedule");
-  };
-
-  const handleScheduleMeeting = async () => {
-    setScheduleLoading(true);
-    setScheduleSuccess(null);
-    setScheduledLink(""); // reset link
-    try {
-      const res = await axios.post("http://localhost:8080/api/video/schedule-meeting", {
-        roomName: scheduleRoomInput,
-        scheduledTime: scheduleTimeInput,
-      });
-      setScheduleSuccess(true);
-      setScheduledLink(res.data.joinUrl); // set link from backend
-    } catch (err) {
-      setScheduleSuccess(false);
-      setScheduledLink("");
-    } finally {
-      setScheduleLoading(false);
-    }
-  };
-
-  const closePopup = () => setPopup({ ...popup, open: false });
-
-  // Popup content rendering
-  const renderPopupContent = () => {
-    // Always show error popup if open and error
-    if (popup.open && popup.message && popup.success === false) {
-      return (
-        <div className="text-red-700 font-semibold text-center">
-          {popup.message}
-          <div className="mt-4">
-            <button
-              onClick={() => {
-                setPopup({ ...popup, open: false });
-                setStep("initial"); // Reset to home page view
-                // Optionally reset other state if needed
-              }}
-              className="bg-gray-300 text-gray-700 font-semibold py-2 px-6 rounded-xl shadow-md hover:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-300 transition duration-300"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    if (step === "create" && popup.open) {
-      return (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleCreateRoom();
-          }}
-          className="space-y-6"
-        >
-          <h2 className="text-2xl font-bold text-center mb-4 text-indigo-700 tracking-wide">
-            Create a New Room
-          </h2>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
-          <input
-            value={roomInput}
-            onChange={(e) => setRoomInput(e.target.value)}
-            placeholder="Enter room name"
-            required
-            className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
-          />
-          <div className="flex space-x-6 justify-center">
-            <button
-              type="submit"
-              disabled={!roomInput || loading}
-              className="flex-1 bg-indigo-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-400 transition duration-300"
-            >
-              {loading ? "Creating..." : "Create"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPopup({ open: false });
-                setStep("initial");
-              }}
-              className="flex-1 bg-gray-300 text-gray-700 font-semibold py-3 rounded-xl shadow-md hover:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-300 transition duration-300"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      );
-    }
-    if (step === "created" && popup.open) {
-      return (
-        <div>
-          <h3 className="text-xl font-bold text-green-700 mb-4">Room Created!</h3>
-          <div className="mb-4">
-            <span className="font-semibold text-indigo-700">Share this link to join:</span>
-            <br />
-            <a
-              href={popup.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-indigo-600 underline break-all font-semibold"
-            >
-              {popup.link}
-            </a>
-          </div>
-          <div className="flex gap-4 justify-center">
-            <button
-              onClick={() => {
-                closePopup();
-                setStep("initial");
-                setRoomInput("");
-              }}
-              className="bg-green-600 text-white font-bold py-2 px-8 rounded-xl shadow-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-400 transition duration-300"
-            >
-              OK
-            </button>
-            <button
-              onClick={() => {
-                setPopup({ ...popup, open: false });
-                setTimeout(() => {
-                  setJoinLinkInput(popup.link || "");
-                  setIdentityInput("");
-                  setPopup({ open: true, message: "", success: true });
-                  setStep("join");
-                }, 200);
-              }}
-              className="bg-indigo-600 text-white font-bold py-2 px-8 rounded-xl shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-400 transition duration-300"
-            >
-              Join Room
-            </button>
-          </div>
-        </div>
-      );
-    }
-    if (step === "join" && popup.open) {
-      return (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleJoinRoom();
-          }}
-          className="space-y-6"
-        >
-          <h2 className="text-2xl font-bold text-center mb-4 text-indigo-700 tracking-wide">
-            Join a Room
-          </h2>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-          <input
-            value={identityInput}
-            onChange={(e) => setIdentityInput(e.target.value)}
-            placeholder="Your Name"
-            required
-            className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
-          />
-          <label className="block text-sm font-medium text-gray-700 mb-1">Paste Join Link</label>
-          <input
-            value={joinLinkInput}
-            onChange={(e) => setJoinLinkInput(e.target.value)}
-            placeholder="Paste join link here"
-            required
-            className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
-          />
-          <div className="flex space-x-6 justify-center">
-            <button
-              type="submit"
-              disabled={!identityInput || !joinLinkInput || loading}
-              className="flex-1 bg-indigo-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-400 transition duration-300"
-            >
-              {loading ? "Joining..." : "Join"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPopup({ open: false });
-                setStep("initial");
-              }}
-              className="flex-1 bg-gray-300 text-gray-700 font-semibold py-3 rounded-xl shadow-md hover:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-300 transition duration-300"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      );
-    }
-    if (step === "schedule" && popup.open) {
-      return (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleScheduleMeeting();
-          }}
-          className="space-y-8"
-        >
-          <h2 className="text-2xl font-bold text-center mb-4 text-indigo-700 tracking-wide">
-            Schedule a Meeting
-          </h2>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
-          <input
-            value={scheduleRoomInput}
-            onChange={(e) => setScheduleRoomInput(e.target.value)}
-            placeholder="Enter room name"
-            required
-            className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
-          />
-          <label className="block text-sm font-medium text-gray-700 mb-1">Scheduled Time</label>
-          <input
-            type="datetime-local"
-            step="1"
-            value={scheduleTimeInput}
-            onChange={(e) => setScheduleTimeInput(e.target.value)}
-            required
-            className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
-          />
-          {scheduleSuccess === true && (
-            <div className="text-green-700 font-semibold">
-              Meeting scheduled successfully!
-              {scheduledLink && (
-                <div
-                  className="mt-2 whitespace-nowrap overflow-x-auto"
-                  style={{ fontSize: "1.1rem", fontWeight: "bold" }}
-                >
-                  Join Link:&nbsp;
-                  <a
-                    href={scheduledLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    {scheduledLink}
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
-          {scheduleSuccess === false && (
-            <div className="text-red-700 font-semibold">Failed to schedule meeting.</div>
-          )}
-          <div className="flex space-x-6 justify-center">
-            <button
-              type="submit"
-              disabled={!scheduleRoomInput || !scheduleTimeInput || scheduleLoading}
-              className="flex-1 bg-indigo-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-400 transition duration-300"
-            >
-              {scheduleLoading ? "Scheduling..." : "Schedule"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPopup({ open: false });
-                setStep("initial");
-              }}
-              className="flex-1 bg-gray-300 text-gray-700 font-semibold py-3 rounded-xl shadow-md hover:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-300 transition duration-300"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      );
-    }
-    return null;
-  };
-
-  // --- UI STARTS HERE ---
   return (
-    <Layout>
-      {/* Popup */}
-      {popup.open && (
+    <div>
+      {/* POPUPS */}
+      {showCreatePopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-xl border-4 border-indigo-300 animate-fadeIn">
-            {renderPopupContent()}
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                createRoom();
+              }}
+              className="space-y-6"
+            >
+              <h2 className="text-2xl font-bold text-center mb-4 text-indigo-700 tracking-wide">
+                Create a New Room
+              </h2>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
+              <input
+                value={roomName}
+                onChange={e => setRoomName(e.target.value)}
+                placeholder="Enter room name"
+                required
+                className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
+              />
+              <div className="flex space-x-6 justify-center">
+                <button
+                  type="submit"
+                  disabled={!roomName}
+                  className="flex-1 bg-indigo-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-400 transition duration-300"
+                >
+                  Create
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreatePopup(false)}
+                  className="flex-1 bg-gray-300 text-gray-700 font-semibold py-3 rounded-xl shadow-md hover:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-300 transition duration-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Initial three buttons */}
-      {step === "initial" && (
+      {showJoinPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-xl border-4 border-indigo-300 animate-fadeIn">
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                joinRoom();
+              }}
+              className="space-y-6"
+            >
+              <h2 className="text-2xl font-bold text-center mb-4 text-indigo-700 tracking-wide">
+                Join a Room
+              </h2>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+              <input
+                value={identity}
+                onChange={e => setIdentity(e.target.value)}
+                placeholder="Your Name"
+                required
+                className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
+              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
+              <input
+                value={roomName}
+                onChange={e => setRoomName(e.target.value)}
+                placeholder="Room Name"
+                required
+                className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
+              />
+              <div className="flex space-x-6 justify-center">
+                <button
+                  type="submit"
+                  disabled={!identity || !roomName}
+                  className="flex-1 bg-indigo-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-400 transition duration-300"
+                >
+                  Join
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowJoinPopup(false)}
+                  className="flex-1 bg-gray-300 text-gray-700 font-semibold py-3 rounded-xl shadow-md hover:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-300 transition duration-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-xl border-4 border-indigo-300 animate-fadeIn text-center">
+            <h3 className="text-xl font-bold text-green-700 mb-4">Room Created!</h3>
+            <div className="mb-4">
+              <span className="font-semibold text-indigo-700">Share this link to join:</span>
+              <br />
+              <a
+                href={joinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-600 underline break-all font-semibold"
+              >
+                {joinUrl}
+              </a>
+            </div>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => setShowPopup(false)}
+                className="bg-green-600 text-white font-bold py-2 px-8 rounded-xl shadow-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-400 transition duration-300"
+              >
+                OK
+              </button>
+              <button
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                onClick={() => {
+                  setShowJoinPopup(false);   // Close Join Popup
+                  setShowPopup(false);       // Close Link Popup
+                  setShowCreatePopup(false); // ✅ Close Create Room Popup
+                  setTimeout(() => {
+                    joinRoom();              // Start meeting
+                  }, 0);
+                }}
+              >
+                Join Room
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showScheduleForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-xl border-4 border-indigo-300 animate-fadeIn">
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                handleScheduleMeeting();
+              }}
+              className="space-y-8"
+            >
+              <h2 className="text-2xl font-bold text-center mb-4 text-indigo-700 tracking-wide">
+                Schedule a Meeting
+              </h2>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
+              <input
+                value={roomName}
+                onChange={e => setRoomName(e.target.value)}
+                placeholder="Enter room name"
+                required
+                className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
+              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Scheduled Time</label>
+              <input
+                type="datetime-local"
+                value={scheduledTime}
+                onChange={e => setScheduledTime(e.target.value)}
+                required
+                className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
+              />
+              {joinUrl && (
+                <div className="text-green-700 font-semibold">
+                  Meeting scheduled successfully!
+                  <div
+                    className="mt-2 whitespace-nowrap overflow-x-auto"
+                    style={{ fontSize: "1.1rem", fontWeight: "bold" }}
+                  >
+                    Join Link:&nbsp;
+                    <a
+                      href={joinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      {joinUrl}
+                    </a>
+                  </div>
+                </div>
+              )}
+              <div className="flex space-x-6 justify-center">
+                <button
+                  type="submit"
+                  disabled={!roomName || !scheduledTime}
+                  className="flex-1 bg-indigo-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-400 transition duration-300"
+                >
+                  Schedule
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowScheduleForm(false)}
+                  className="flex-1 bg-gray-300 text-gray-700 font-semibold py-3 rounded-xl shadow-md hover:bg-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-300 transition duration-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MAIN BUTTONS */}
+      {!joined && (
         <div className="flex flex-col items-center justify-center min-h-[80vh] bg-gradient-to-br from-indigo-50 via-white to-blue-100 rounded-3xl shadow-2xl mx-auto max-w- px-6  py-20 animate-fadeIn">
           <div className="mb-12 mt-2 w-full px-2">
             <h1 className="text-5xl font-extrabold text-indigo-800 tracking-wide drop-shadow-lg text-center leading-tight">
@@ -597,10 +417,9 @@ function MeetingRoom() {
               </span>
             </h1>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
             <button
-              onClick={handleCreateRoomPopup}
+              onClick={() => setShowCreatePopup(true)}
               className="flex flex-col items-center justify-center bg-white hover:bg-indigo-50 border-2 border-indigo-300 rounded-2xl shadow-xl py-10 px-6 transition-all duration-200 group"
             >
               <HiVideoCamera className="text-indigo-600 text-5xl mb-4 group-hover:scale-110 transition" />
@@ -608,15 +427,15 @@ function MeetingRoom() {
               <span className="text-gray-500 text-base">Start a new meeting and invite others</span>
             </button>
             <button
-              onClick={handleJoinRoomPopup}
+              onClick={() => setShowJoinPopup(true)}
               className="flex flex-col items-center justify-center bg-white hover:bg-green-50 border-2 border-green-300 rounded-2xl shadow-xl py-10 px-6 transition-all duration-200 group"
             >
               <HiUserGroup className="text-green-600 text-5xl mb-4 group-hover:scale-110 transition" />
               <span className="text-xl font-bold text-green-700 mb-2">Join Room</span>
-              <span className="text-gray-500 text-base">Enter a link to join an existing meeting</span>
+              <span className="text-gray-500 text-base">Enter a room name to join an existing meeting</span>
             </button>
             <button
-              onClick={handleScheduleMeetingPopup}
+              onClick={() => setShowScheduleForm(true)}
               className="flex flex-col items-center justify-center bg-white hover:bg-yellow-50 border-2 border-yellow-300 rounded-2xl shadow-xl py-10 px-6 transition-all duration-200 group"
             >
               <FaChalkboardTeacher className="text-yellow-600 text-5xl mb-4 group-hover:scale-110 transition" />
@@ -627,8 +446,8 @@ function MeetingRoom() {
         </div>
       )}
 
-      {/* Connected view */}
-      {step === "connected" && (
+      {/* CONNECTED VIEW */}
+      {joined && (
         <div className="fixed inset-0 bg-gradient-to-br from-indigo-100 via-white to-blue-200 flex flex-col z-40 overflow-auto animate-fadeIn">
           {/* Header */}
           <div className="w-full flex flex-col items-center pt-10 pb-4">
@@ -656,7 +475,7 @@ function MeetingRoom() {
                   <span className="text-lg text-indigo-700 font-semibold tracking-wide">You</span>
                 </div>
                 <div
-                  id="local-video"
+                  ref={localVideoRef}
                   className="rounded-2xl overflow-hidden w-full border-2 border-indigo-200 shadow"
                   style={{
                     width: "100%",
@@ -673,7 +492,7 @@ function MeetingRoom() {
                   <span className="text-lg text-blue-700 font-semibold tracking-wide">Participants</span>
                 </div>
                 <div
-                  id="remote-videos"
+                  ref={remoteVideoRef}
                   className="flex flex-wrap gap-6 justify-center items-center rounded-2xl"
                   style={{
                     minWidth: 320,
@@ -687,14 +506,13 @@ function MeetingRoom() {
           {/* Controls */}
           <div className="flex flex-col md:flex-row gap-6 justify-center items-center my-8">
             <button
-              onClick={handleScreenShare}
-              className={`bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white font-bold py-3 px-8 rounded-2xl shadow-lg transition-all duration-200 text-lg tracking-wide ${isSharing ? "opacity-70" : ""
-                }`}
+              onClick={shareScreen}
+              className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white font-bold py-3 px-8 rounded-2xl shadow-lg transition-all duration-200 text-lg tracking-wide"
             >
-              {isSharing ? "Stop Sharing" : "Share Screen"}
+              Share Screen
             </button>
             <button
-              onClick={handleDisconnect}
+              onClick={leaveRoom}
               className="bg-gradient-to-r from-red-500 via-red-600 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold py-3 px-8 rounded-2xl shadow-lg transition-all duration-200 text-lg tracking-wide"
             >
               Disconnect
@@ -719,33 +537,34 @@ function MeetingRoom() {
                 </div>
               ))}
             </div>
-            <form
-              onSubmit={handleSendMessage}
-              className="flex gap-3"
-              autoComplete="off"
-            >
+            <div className="flex gap-3">
               <input
                 type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendMessage()}
                 placeholder="Type a message..."
                 className="flex-1 px-4 py-3 rounded-xl border-2 border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition text-lg"
               />
               <button
-                type="submit"
-                disabled={!chatInput.trim()}
+                onClick={sendMessage}
+                disabled={!message.trim()}
                 className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white font-bold px-6 py-3 rounded-xl transition text-lg"
               >
                 Send
               </button>
-            </form>
+            </div>
           </div>
         </div>
       )}
-      {/* --- END CONNECTED VIEW --- */}
-    </Layout>
+
+      {isJoining && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white p-4 rounded shadow text-center text-lg font-semibold">Joining Room...</div>
+        </div>
+      )}
+    </div>
   );
-}
+};
 
 export default MeetingRoom;
-

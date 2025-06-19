@@ -185,7 +185,7 @@ const Calender = () => {
  
         <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl p-8">
           <h1 className="text-center text-3xl font-extrabold tracking-wide text-blue-600 mb-7">
-            Calender
+            Calendar
           </h1>
           <div className="rounded-xl shadow">
             <Calendar
