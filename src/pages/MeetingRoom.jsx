@@ -5,6 +5,9 @@ import { LocalDataTrack } from 'twilio-video';
 import { useNavigate } from 'react-router-dom'; // Add this import
 import { HiVideoCamera, HiUserGroup } from "react-icons/hi2";
 import { FaChalkboardTeacher } from "react-icons/fa";
+import { FaMicrophoneSlash } from 'react-icons/fa';
+import { FaMicrophone } from 'react-icons/fa';
+import { MdMicOff } from 'react-icons/md';
 
 const MeetingRoom = () => {
   const [identity, setIdentity] = useState('user-' + Math.floor(Math.random() * 1000));
@@ -21,6 +24,7 @@ const MeetingRoom = () => {
   const [scheduledTime, setScheduledTime] = useState('');
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [enlargedVideo, setEnlargedVideo] = useState(null); // 'local' or participant identity
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const localVideoTrackRef = useRef(null);
@@ -110,7 +114,7 @@ const MeetingRoom = () => {
       setParticipants(prev => [...prev, participant.identity]);
       participant.tracks.forEach(publication => {
         if (publication.track) {
-          attachTrack(publication.track);
+          attachTrack(publication.track, participant.identity);
         }
         if (publication.track?.kind === 'data') {
           publication.track.on('message', data => {
@@ -124,7 +128,7 @@ const MeetingRoom = () => {
             setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
           });
         } else {
-          attachTrack(track);
+          attachTrack(track, participant.identity);
         }
       });
       participant.on('trackUnsubscribed', track => {
@@ -232,9 +236,13 @@ const MeetingRoom = () => {
     }
   };
 
-   const attachTrack = (track) => {
+   const attachTrack = (track, identity) => {
   if (track.kind === 'video' || track.kind === 'audio') {
     const element = track.attach();
+    if (track.kind === 'video' && identity) {
+      element.dataset.identity = identity;
+      element.style.cursor = 'pointer';
+    }
     if (remoteVideoRef.current) {
       remoteVideoRef.current.appendChild(element);
     }
@@ -244,6 +252,126 @@ const detachTrack = (track) => {
   track.detach().forEach(el => el.remove());
 };
 
+
+// Helper to render enlarged video with thumbnails
+// Helper to check if a participant (or local) is muted
+const isAudioEnabled = (who) => {
+  if (who === 'local') {
+    return audioEnabled;
+  }
+  if (room) {
+    const participant = Array.from(room.participants.values()).find(p => p.identity === who);
+    if (participant) {
+      const audioPub = Array.from(participant.audioTracks.values())[0];
+      if (audioPub && audioPub.track) {
+        return audioPub.track.isEnabled;
+      }
+    }
+  }
+  return false;
+};
+
+const EnlargedVideoModal = () => {
+  if (!enlargedVideo) return null;
+
+  // Helper to get video element for a participant
+  const getVideoElement = (who) => {
+    let videoElement = null;
+    if (who === 'local' && localVideoTrackRef.current) {
+      videoElement = localVideoTrackRef.current.attach();
+      videoElement.style.width = '100%';
+      videoElement.style.height = '100%';
+      videoElement.style.objectFit = 'contain';
+      videoElement.style.transform = 'scaleX(-1)';
+    } else if (room && who !== 'local') {
+      const participant = Array.from(room.participants.values()).find(
+        p => p.identity === who
+      );
+      if (participant) {
+        const videoPub = Array.from(participant.videoTracks.values())[0];
+        if (videoPub && videoPub.track) {
+          videoElement = videoPub.track.attach();
+          videoElement.style.width = '100%';
+          videoElement.style.height = '100%';
+          videoElement.style.objectFit = 'contain';
+          videoElement.style.transform = 'scaleX(-1)';
+        }
+      }
+    }
+    return videoElement;
+  };
+
+  // Collect all video identities
+  const remoteIdentities = room ? Array.from(room.participants.values()).map(p => p.identity) : [];
+  const allVideos = ['local', ...remoteIdentities];
+
+  // Main enlarged video
+  const mainVideo = getVideoElement(enlargedVideo);
+
+  // Thumbnails (all except enlarged)
+  const thumbnails = allVideos.filter(id => id !== enlargedVideo);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-[100]"
+      onClick={() => setEnlargedVideo(null)}
+    >
+      <div
+        className="bg-black rounded-2xl shadow-2xl flex flex-col items-center justify-center relative"
+        style={{ width: '80vw', height: '75vh', maxWidth: 900, maxHeight: 700 }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Main Enlarged Video */}
+        <div style={{ width: '100%', height: '80%', position: 'relative' }} className="flex items-center justify-center">
+          {mainVideo && (
+            <div style={{ width: '100%', height: '100%' }} ref={el => el && el.appendChild(mainVideo)} />
+          )}
+          {/* Mute/Unmute Icon for enlarged */}
+          <div className="absolute top-4 left-4 bg-white/80 rounded-full p-2 shadow">
+            {isAudioEnabled(enlargedVideo) ? (
+              <FaMicrophone  className="text-green-600 text-2xl" title="Unmuted" />
+            ) : (
+              <MdMicOff   className="text-red-600 text-2xl" title="Muted" />
+            )}
+          </div>
+        </div>
+        {/* Thumbnails */}
+        <div className="flex gap-4 mt-4 px-4 w-full justify-center">
+          {thumbnails.map(id => {
+            const thumb = getVideoElement(id);
+            return (
+              <div
+                key={id}
+                className="relative rounded-lg border-2 border-indigo-300 bg-black cursor-pointer"
+                style={{ width: 120, height: 90, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => setEnlargedVideo(id)}
+                title={id === 'local' ? 'You' : id}
+              >
+                {thumb && (
+                  <div style={{ width: '100%', height: '100%' }} ref={el => el && el.appendChild(thumb)} />
+                )}
+                {/* Mute/Unmute Icon for thumbnail */}
+                <div className="absolute top-2 left-2 bg-white/80 rounded-full p-1 shadow">
+                  {isAudioEnabled(id) ? (
+                    <FaMicrophone  className="text-green-600 text-base" title="Unmuted" />
+                  ) : (
+                    <MdMicOff  className="text-red-600 text-base" title="Muted" />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <button
+          onClick={() => setEnlargedVideo(null)}
+          className="absolute top-4 right-4 bg-white text-black rounded-full px-4 py-2 font-bold shadow hover:bg-gray-200"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+};
 
   // Attach local video after joining
   useEffect(() => {
@@ -520,25 +648,46 @@ const detachTrack = (track) => {
           <div className="flex-1 flex flex-col items-center justify-center w-full px-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full max-w-6xl">
               {/* Local video */}
-              <div className="flex flex-col items-center bg-white/80 rounded-3xl border-4 border-indigo-300 shadow-2xl p-6">
+              <div
+                className={`flex flex-col items-center bg-white/80 rounded-3xl border-4 border-indigo-300 shadow-2xl p-6 transition-all duration-300 ${
+                  enlargedVideo && enlargedVideo !== 'local' ? 'scale-75 opacity-60 pointer-events-none' : 'scale-100 opacity-100'
+                }`}
+                style={{ zIndex: enlargedVideo === 'local' ? 50 : 1 }}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></span>
                   <span className="text-lg text-indigo-700 font-semibold tracking-wide">You</span>
                 </div>
                 <div
                   ref={localVideoRef}
-                  className="rounded-2xl overflow-hidden w-full border-2 border-indigo-200 shadow"
+                  className="relative rounded-2xl overflow-hidden w-full border-2 border-indigo-200 shadow"
                   style={{
                     width: "100%",
                     height: 400,
                     minWidth: 320,
                     background: "#e3eafc",
                     transform: "scaleX(-1)",
+                    cursor: "pointer"
                   }}
-                ></div>
+                  onClick={() => setEnlargedVideo('local')}
+                >
+                  {/* Mute/Unmute Icon */}
+                  <div className="absolute top-2 left-2 bg-white/80 rounded-full p-2 shadow">
+                    {audioEnabled ? (
+                      <FaMicrophone  className="text-green-600 text-xl" title="Unmuted" />
+                    ) : (
+                      <MdMicOff  className="text-red-600 text-xl" title="Muted" />
+                    )}
+                  </div>
+                </div>
               </div>
               {/* Remote videos */}
-              <div className="flex flex-col items-center bg-white/80 rounded-3xl border-4 border-blue-200 shadow-2xl p-6">
+              <div
+                className={`flex flex-col items-center bg-white/80 rounded-3xl border-4 border-blue-200 shadow-2xl p-6 transition-all duration-300 ${
+                  enlargedVideo && enlargedVideo !== 'local' ? 'scale-100 opacity-100 z-50' : (enlargedVideo ? 'scale-75 opacity-60 pointer-events-none' : 'scale-100 opacity-100')
+                }`}
+                style={{ zIndex: enlargedVideo && enlargedVideo !== 'local' ? 50 : 1 }}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-3 h-3 rounded-full bg-blue-400 animate-pulse"></span>
                   <span className="text-lg text-blue-700 font-semibold tracking-wide">Participants</span>
@@ -551,8 +700,29 @@ const detachTrack = (track) => {
                     minHeight: 400,
                     background: "#f8faff",
                     transform: "scaleX(-1)",
+                    position: "relative"
                   }}
-                ></div>
+                  onClick={e => {
+                    const video = e.target.closest('video');
+                    if (video && video.dataset.identity) {
+                      setEnlargedVideo(video.dataset.identity);
+                    }
+                  }}
+                >
+                  {/* Overlay icon for each remote participant */}
+                  {room &&
+                    Array.from(room.participants.values()).map(participant => (
+                      <div key={participant.identity} className="absolute" style={{ pointerEvents: "none" }}>
+                        <div className="absolute top-2 left-2 bg-white/80 rounded-full p-2 shadow z-10">
+                          {isAudioEnabled(participant.identity) ? (
+                            <FaMicrophone  className="text-green-600 text-xl" title="Unmuted" />
+                          ) : (
+                            <MdMicOff  className="text-red-600 text-xl" title="Muted" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
               </div>
             </div>
           </div>
@@ -579,18 +749,37 @@ const detachTrack = (track) => {
               </svg>
               Chat
             </h3>
-            <div className="h-48 overflow-y-auto mb-4 bg-indigo-50 rounded-xl p-3 text-left text-base shadow-inner" style={{ minHeight: 120 }}>
+            <div className="h-64 overflow-y-auto mb-4 bg-indigo-50 rounded-xl p-4 text-left text-base shadow-inner flex flex-col gap-2" style={{ minHeight: 120 }}>
               {chatMessages.length === 0 && (
-                <div className="text-gray-400 italic">No messages yet.</div>
+                <div className="text-gray-400 italic text-center mt-10">No messages yet.</div>
               )}
               {chatMessages.map((msg, idx) => (
-                <div key={idx}>
-                  <span className="font-semibold text-indigo-700">{msg.sender}:</span>{" "}
-                  <span>{msg.text}</span>
+                <div
+                  key={idx}
+                  className={`flex ${msg.sender === identity || msg.sender === 'You' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[70%] px-4 py-2 rounded-2xl shadow
+            ${msg.sender === identity || msg.sender === 'You'
+              ? 'bg-indigo-600 text-white rounded-br-none'
+              : 'bg-white text-indigo-800 border border-indigo-200 rounded-bl-none'
+            }`}
+                  >
+                    <div className="text-xs font-semibold mb-1 opacity-70">
+                      {msg.sender === identity || msg.sender === 'You' ? 'You' : msg.sender}
+                    </div>
+                    <div className="break-words">{msg.text}</div>
+                  </div>
                 </div>
               ))}
             </div>
-            <div className="flex gap-3">
+            <form
+              className="flex gap-3"
+              onSubmit={e => {
+                e.preventDefault();
+                sendMessage();
+              }}
+            >
               <input
                 type="text"
                 value={message}
@@ -600,13 +789,13 @@ const detachTrack = (track) => {
                 className="flex-1 px-4 py-3 rounded-xl border-2 border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition text-lg"
               />
               <button
-                onClick={sendMessage}
+                type="submit"
                 disabled={!message.trim()}
                 className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white font-bold px-6 py-3 rounded-xl transition text-lg"
               >
                 Send
               </button>
-            </div>
+            </form>
           </div>
         </div>
       )}
@@ -616,6 +805,8 @@ const detachTrack = (track) => {
           <div className="bg-white p-4 rounded shadow text-center text-lg font-semibold">Joining Room...</div>
         </div>
       )}
+
+      {enlargedVideo && <EnlargedVideoModal />}
     </div>
   );
 };
