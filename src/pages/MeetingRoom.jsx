@@ -21,7 +21,6 @@ const MeetingRoom = () => {
   const [scheduledTime, setScheduledTime] = useState('');
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const localVideoTrackRef = useRef(null);
@@ -53,8 +52,19 @@ const MeetingRoom = () => {
       setJoinUrl(res.data.joinUrl);
       setShowPopup(true);
     } catch (err) {
-      console.error('Create room error:', err);
-      alert('Failed to create room');
+      // Enhanced error handling for new backend logic
+      if (err.response) {
+        const message = err.response.data.message?.toLowerCase() || "";
+        if (err.response.status === 400 && message.includes("no scheduled meeting")) {
+          alert("🚫 Cannot create room. No scheduled meeting found with this room name.");
+        } else if (message) {
+          alert(`🚫 ${err.response.data.message}`);
+        } else {
+          alert("🚫 Failed to create room.");
+        }
+      } else {
+        alert("🚫 Failed to create room.");
+      }
     }
   };
   const sendMessage = () => {
@@ -64,103 +74,131 @@ const MeetingRoom = () => {
       setMessage('');
     }
   };
-  const joinRoom = async () => {
-    setIsJoining(true);
-    try {
-      const res = await axios.get('http://localhost:8080/api/video/generate-token', {
-        params: { identity, roomName },
-      });
-      const token = res.data.token;
-      const videoTrack = await createLocalVideoTrack();
-      const audioTrack = await createLocalAudioTrack();
+   const joinRoom = async () => {
+  setIsJoining(true);
+  try {
+    const res = await axios.get('http://localhost:8080/api/video/generate-token', {
+      params: { identity, roomName },
+    });
+    const token = res.data.token;
+    const videoTrack = await createLocalVideoTrack();
+    const audioTrack = await createLocalAudioTrack();
 
-      localVideoTrackRef.current = videoTrack;
-      localAudioTrackRef.current = audioTrack;
+    localVideoTrackRef.current = videoTrack;
+    localAudioTrackRef.current = audioTrack;
 
+    dataTrackRef.current = new LocalDataTrack();
 
-      dataTrackRef.current = new LocalDataTrack();
+    const connectedRoom = await connect(token, {
+      name: roomName,
+      tracks: [videoTrack, audioTrack, dataTrackRef.current],
+    });
 
-      const connectedRoom = await connect(token, {
-        name: roomName,
-        tracks: [videoTrack, audioTrack, dataTrackRef.current],
-      });
+    setRoom(connectedRoom);
+    setJoined(true);
+    setShowJoinPopup(false);
+    setIsJoining(false);
 
-      setRoom(connectedRoom);
-      setJoined(true);
-      setShowJoinPopup(false);
-      setIsJoining(false);
-
-
-
-      const handleParticipant = (participant) => {
-        setParticipants(prev => [...prev, participant.identity]);
-
-        participant.tracks.forEach(publication => {
-          if (publication.track.kind === 'data' && publication.isSubscribed) {
-            publication.track.on('message', data => {
-              setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
-            });
-          }
-        });
-
-        participant.on('trackSubscribed', track => {
-          if (track.kind === 'data') {
-            track.on('message', data => {
-              setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
-            });
-          }
-        });
-
-        participant.on('trackUnsubscribed', track => {
-          if (track.kind !== 'data') {
-            track.detach().forEach(el => el.remove());
-          }
-        });
-      };
-
-
-      connectedRoom.participants.forEach(handleParticipant);
-      connectedRoom.on('participantConnected', handleParticipant);
-      connectedRoom.on('participantDisconnected', participant => {
-        setParticipants(prev => prev.filter(p => p !== participant.identity));
-      });
-
-      connectedRoom.on('disconnected', () => {
-        connectedRoom.localParticipant.tracks.forEach(publication => {
-          publication.track.stop();
-          publication.track.detach().forEach(el => el.remove());
-        });
-        setJoined(false);
-        setRoom(null);
-        setParticipants([]);
-      });
-
-    } catch (err) {
-      setIsJoining(false);
-      // Enhanced error handling for scheduled meetings
-      if (err.response && err.response.status === 400) {
-        const message = err.response.data.message || "";
-        if (message.toLowerCase().includes("not active") || message.toLowerCase().includes("before scheduled time")) {
-          alert("🚫 This meeting is scheduled for a future time. You cannot join before the scheduled time.");
-        } else {
-          alert(`🚫 ${message}`);
-        }
-      } else {
-        console.error('Token fetch error:', err);
-        alert('🚫 This meeting is scheduled for a future time. You cannot join before the scheduled time.');
-      }
+    // Attach local video
+    if (localVideoRef.current) {
+      localVideoRef.current.innerHTML = '';
+      localVideoRef.current.appendChild(videoTrack.attach());
     }
-  };
+
+    // Attach remote participants
+    const handleParticipant = (participant) => {
+      setParticipants(prev => [...prev, participant.identity]);
+      participant.tracks.forEach(publication => {
+        if (publication.track) {
+          attachTrack(publication.track);
+        }
+        if (publication.track?.kind === 'data') {
+          publication.track.on('message', data => {
+            setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
+          });
+        }
+      });
+      participant.on('trackSubscribed', track => {
+        if (track.kind === 'data') {
+          track.on('message', data => {
+            setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
+          });
+        } else {
+          attachTrack(track);
+        }
+      });
+      participant.on('trackUnsubscribed', track => {
+        detachTrack(track);
+      });
+    };
+
+    connectedRoom.participants.forEach(handleParticipant);
+    connectedRoom.on('participantConnected', handleParticipant);
+    connectedRoom.on('participantDisconnected', participant => {
+      participant.tracks.forEach(publication => {
+        if (publication.track) {
+          detachTrack(publication.track);
+        }
+      });
+      setParticipants(prev => prev.filter(p => p !== participant.identity));
+    });
+
+    connectedRoom.on('disconnected', () => {
+      connectedRoom.localParticipant.tracks.forEach(publication => {
+        publication.track.stop();
+        publication.track.detach().forEach(el => el.remove());
+      });
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.innerHTML = '';
+      }
+      setJoined(false);
+      setRoom(null);
+      setParticipants([]);
+    });
+
+  } catch (err) {
+    setIsJoining(false);
+    // Enhanced error handling for new backend logic
+    if (err.response) {
+      const message = err.response.data.message?.toLowerCase() || "";
+      if (err.response.status === 404 && message.includes("room does not exist")) {
+        alert("🚫 Room does not exist. Please use a valid scheduled meeting link.");
+      } else if (err.response.status === 400 && message.includes("not active")) {
+        alert("🚫 Room is not active yet. Please wait for it to be created.");
+      } else if (message) {
+        alert(`🚫 ${err.response.data.message}`);
+      } else {
+        alert("🚫 Unable to join the room.");
+      }
+    } else {
+      alert("🚫 Unable to join the room.");
+    }
+  }
+};
+
 
   const leaveRoom = () => {
-    if (room) {
-      room.disconnect();
-      setRoom(null);
-      setJoined(false);
-      setParticipants([]);
-       navigate('/meeting-room');
+  if (room) {
+    room.localParticipant.tracks.forEach(publication => {
+      const track = publication.track;
+      if (track && typeof track.stop === 'function') {
+        track.stop();
+        track.detach().forEach(el => el.remove());
+      }
+    });
+    room.disconnect();
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.innerHTML = '';
     }
-  };
+    if (localVideoRef.current) {
+      localVideoRef.current.innerHTML = '';
+    }
+    setRoom(null);
+    setJoined(false);
+    setParticipants([]);
+    navigate('/meeting-room');
+  }
+};
 
   const toggleAudio = () => {
     if (localAudioTrackRef.current) {
@@ -193,6 +231,19 @@ const MeetingRoom = () => {
       console.error('Screen sharing failed', err);
     }
   };
+
+   const attachTrack = (track) => {
+  if (track.kind === 'video' || track.kind === 'audio') {
+    const element = track.attach();
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.appendChild(element);
+    }
+  }
+};
+const detachTrack = (track) => {
+  track.detach().forEach(el => el.remove());
+};
+
 
   // Attach local video after joining
   useEffect(() => {
@@ -482,6 +533,7 @@ const MeetingRoom = () => {
                     height: 400,
                     minWidth: 320,
                     background: "#e3eafc",
+                    transform: "scaleX(-1)",
                   }}
                 ></div>
               </div>
@@ -498,6 +550,7 @@ const MeetingRoom = () => {
                     minWidth: 320,
                     minHeight: 400,
                     background: "#f8faff",
+                    transform: "scaleX(-1)",
                   }}
                 ></div>
               </div>
@@ -568,3 +621,4 @@ const MeetingRoom = () => {
 };
 
 export default MeetingRoom;
+
