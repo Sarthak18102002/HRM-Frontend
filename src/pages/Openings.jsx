@@ -33,18 +33,35 @@ const Modal = ({
           }}
           className="space-y-6"
         >
-           <label className="block text-sm font-medium text-gray-700 mb-1">Job Description</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Job Title
+          </label>
           <input
             type="text"
+            name="jobTitle"
+            value={formData.jobTitle}
+            onChange={handleChange}
+            placeholder="Job Title"
+            required
+            className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300
+    transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
+          />
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Job Description
+          </label>
+          <textarea
             name="jobDescription"
             value={formData.jobDescription}
             onChange={handleChange}
             placeholder="Job Description"
             required
-            className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300
-               transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
+            rows={4}
+            className="w-full px-3 py-4 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300
+    transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm resize-none"
           />
-            <label className="block text-sm font-medium text-gray-700 mb-1">Job Type</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Job Type
+          </label>
           <input
             type="text"
             name="jobType"
@@ -55,7 +72,9 @@ const Modal = ({
             className="w-full px-5 py-3 rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300
                transition duration-300 text-gray-700 placeholder-gray-400 shadow-sm"
           />
-            <label className="block text-sm font-medium text-gray-700 mb-1">Years Of Experience</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Years Of Experience
+          </label>
           <input
             type="number"
             name="yearOfExperience"
@@ -69,7 +88,9 @@ const Modal = ({
           />
 
           {/* Technology Dropdown */}
-            <label className="block text-sm font-medium text-gray-700 mb-1">Technology</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Technology
+          </label>
           <select
             name="tech_id"
             value={formData.tech_id}
@@ -114,6 +135,7 @@ const Modal = ({
 const Openings = () => {
   const [jobOpenings, setJobOpenings] = useState([]);
   const [formData, setFormData] = useState({
+    jobTitle: "",
     jobDescription: "",
     jobType: "",
     yearOfExperience: 0,
@@ -196,6 +218,7 @@ const Openings = () => {
     }
     try {
       await axiosInstance.post("/job-openings", {
+        jobTitle: formData.jobTitle,
         jobDescription: formData.jobDescription,
         jobType: formData.jobType,
         yearOfExperience: Number(formData.yearOfExperience),
@@ -204,7 +227,7 @@ const Openings = () => {
       alert("Job opening created successfully!");
       setError("");
       fetchJobOpenings(currentPage);
-      setFormData({ jobDescription: "", jobType: "", yearOfExperience: 0, tech_id: "" });
+      setFormData({ jobTitle: "", jobDescription: "", jobType: "", yearOfExperience: 0, tech_id: "" });
       setIsModalOpen(false);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create job opening.");
@@ -224,6 +247,7 @@ const Openings = () => {
     try {
       const updatedData = {
         id: currentJobOpeningId,
+        jobTitle: formData.jobTitle.trim(),
         jobDescription: formData.jobDescription.trim(),
         jobType: formData.jobType.trim(),
         yearOfExperience: Number(formData.yearOfExperience),
@@ -234,7 +258,7 @@ const Openings = () => {
         alert("Job opening updated successfully!");
         setEditing(false);
         setCurrentJobOpeningId(null);
-        setFormData({ jobDescription: "", jobType: "", yearOfExperience: 0, tech_id: "" });
+        setFormData({ jobTitle: "", jobDescription: "", jobType: "", yearOfExperience: 0, tech_id: "" });
         fetchJobOpenings(currentPage);
         setIsModalOpen(false);
       } else {
@@ -322,7 +346,7 @@ const Openings = () => {
           <div className="flex justify-center mb-8">
             <button
               onClick={() => {
-                setFormData({ jobDescription: "", jobType: "", yearOfExperience: 0, tech_id: "" });
+                setFormData({ jobTitle: "", jobDescription: "", jobType: "", yearOfExperience: 0, tech_id: "" });
                 setEditing(false);
                 setCurrentJobOpeningId(null);
                 setError("");
@@ -358,6 +382,10 @@ const Openings = () => {
               <div className="flex-1">
                 <div className="space-y-2 text-gray-700">
                   <div>
+                    <span className="font-bold text-indigo-600">Job Title:</span>
+                    <span className="ml-2">{job.jobTitle}</span>
+                  </div>
+                  <div>
                     <span className="font-bold text-indigo-600">Technology Name:</span>
                     <span className="ml-2">{job.technology ? job.technology.techName : "N/A"}</span>
                   </div>
@@ -392,6 +420,7 @@ const Openings = () => {
                       setEditing(true);
                       setCurrentJobOpeningId(job.id);
                       setFormData({
+                        jobTitle: job.jobTitle,
                         jobDescription: job.jobDescription,
                         jobType: job.jobType,
                         yearOfExperience: job.yearOfExperience.toString(),
@@ -484,6 +513,10 @@ const Openings = () => {
               Job Details
             </h2>
             <div className="space-y-4 text-gray-700">
+              <div>
+                <span className="font-semibold text-indigo-600">Job Title:</span>
+                <span className="ml-2">{detailsData.jobTitle}</span>
+              </div>
               <div>
                 <span className="font-semibold text-indigo-600">Job Description:</span>
                 <span className="ml-2">{detailsData.jobDescription}</span>

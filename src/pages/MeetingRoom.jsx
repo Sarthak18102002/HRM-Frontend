@@ -47,7 +47,28 @@ const MeetingRoom = () => {
       alert('Failed to schedule meeting.');
     }
   };
+  const handleFileSend = (e) => {
+    const file = e.target.files[0];
+    if (!file || !dataTrackRef.current) return;
 
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Send as a special chat message (type: file)
+      dataTrackRef.current.send(
+        JSON.stringify({
+          type: 'file',
+          fileName: file.name,
+          fileType: file.type,
+          fileData: reader.result, 
+        })
+      );
+      setChatMessages(prev => [
+        ...prev,
+        { sender: 'You', type: 'file', fileName: file.name, fileType: file.type, fileData: reader.result }
+      ]);
+    };
+    reader.readAsDataURL(file);
+  };
   const createRoom = async () => {
     try {
       const res = await axios.post('http://localhost:8080/api/video/create-room', null, {
@@ -78,131 +99,149 @@ const MeetingRoom = () => {
       setMessage('');
     }
   };
-   const joinRoom = async () => {
-  setIsJoining(true);
-  try {
-    const res = await axios.get('http://localhost:8080/api/video/generate-token', {
-      params: { identity, roomName },
-    });
-    const token = res.data.token;
-    const videoTrack = await createLocalVideoTrack();
-    const audioTrack = await createLocalAudioTrack();
-
-    localVideoTrackRef.current = videoTrack;
-    localAudioTrackRef.current = audioTrack;
-
-    dataTrackRef.current = new LocalDataTrack();
-
-    const connectedRoom = await connect(token, {
-      name: roomName,
-      tracks: [videoTrack, audioTrack, dataTrackRef.current],
-    });
-
-    setRoom(connectedRoom);
-    setJoined(true);
-    setShowJoinPopup(false);
-    setIsJoining(false);
-
-    // Attach local video
-    if (localVideoRef.current) {
-      localVideoRef.current.innerHTML = '';
-      localVideoRef.current.appendChild(videoTrack.attach());
-    }
-
-    // Attach remote participants
-    const handleParticipant = (participant) => {
-      setParticipants(prev => [...prev, participant.identity]);
-      participant.tracks.forEach(publication => {
-        if (publication.track) {
-          attachTrack(publication.track, participant.identity);
-        }
-        if (publication.track?.kind === 'data') {
-          publication.track.on('message', data => {
-            setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
-          });
-        }
+  const joinRoom = async () => {
+    setIsJoining(true);
+    try {
+      const res = await axios.get('http://localhost:8080/api/video/generate-token', {
+        params: { identity, roomName },
       });
-      participant.on('trackSubscribed', track => {
-        if (track.kind === 'data') {
-          track.on('message', data => {
-            setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
-          });
-        } else {
-          attachTrack(track, participant.identity);
-        }
-      });
-      participant.on('trackUnsubscribed', track => {
-        detachTrack(track);
-      });
-    };
+      const token = res.data.token;
+      const videoTrack = await createLocalVideoTrack();
+      const audioTrack = await createLocalAudioTrack();
 
-    connectedRoom.participants.forEach(handleParticipant);
-    connectedRoom.on('participantConnected', handleParticipant);
-    connectedRoom.on('participantDisconnected', participant => {
-      participant.tracks.forEach(publication => {
-        if (publication.track) {
-          detachTrack(publication.track);
-        }
-      });
-      setParticipants(prev => prev.filter(p => p !== participant.identity));
-    });
+      localVideoTrackRef.current = videoTrack;
+      localAudioTrackRef.current = audioTrack;
 
-    connectedRoom.on('disconnected', () => {
-      connectedRoom.localParticipant.tracks.forEach(publication => {
-        publication.track.stop();
-        publication.track.detach().forEach(el => el.remove());
+      dataTrackRef.current = new LocalDataTrack();
+
+      const connectedRoom = await connect(token, {
+        name: roomName,
+        tracks: [videoTrack, audioTrack, dataTrackRef.current],
       });
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.innerHTML = '';
+
+      setRoom(connectedRoom);
+      setJoined(true);
+      setShowJoinPopup(false);
+      setIsJoining(false);
+
+      // Attach local video
+      if (localVideoRef.current) {
+        localVideoRef.current.innerHTML = '';
+        localVideoRef.current.appendChild(videoTrack.attach());
       }
-      setJoined(false);
-      setRoom(null);
-      setParticipants([]);
-    });
 
-  } catch (err) {
-    setIsJoining(false);
-    // Enhanced error handling for new backend logic
-    if (err.response) {
-      const message = err.response.data.message?.toLowerCase() || "";
-      if (err.response.status === 404 && message.includes("room does not exist")) {
-        alert("🚫 Room does not exist. Please use a valid scheduled meeting link.");
-      } else if (err.response.status === 400 && message.includes("not active")) {
-        alert("🚫 Room is not active yet. Please wait for it to be created.");
-      } else if (message) {
-        alert(`🚫 ${err.response.data.message}`);
+      // Attach remote participants
+      const handleParticipant = (participant) => {
+        setParticipants(prev => [...prev, participant.identity]);
+        participant.tracks.forEach(publication => {
+          if (publication.track) {
+            attachTrack(publication.track, participant.identity);
+          }
+          if (publication.track?.kind === 'data') {
+            publication.track.on('message', data => {
+              setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
+            });
+          }
+        });
+        participant.on('trackSubscribed', track => {
+          if (track.kind === 'data') {
+            track.on('message', data => {
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.type === 'file') {
+                  setChatMessages(prev => [
+                    ...prev,
+                    {
+                      sender: participant.identity,
+                      type: 'file',
+                      fileName: parsed.fileName,
+                      fileType: parsed.fileType,
+                      fileData: parsed.fileData
+                    }
+                  ]);
+                } else {
+                  setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
+                }
+              } catch {
+                setChatMessages(prev => [...prev, { sender: participant.identity, text: data }]);
+              }
+            });
+          } else {
+            attachTrack(track, participant.identity);
+          }
+        });
+        participant.on('trackUnsubscribed', track => {
+          detachTrack(track);
+        });
+      };
+
+      connectedRoom.participants.forEach(handleParticipant);
+      connectedRoom.on('participantConnected', handleParticipant);
+      connectedRoom.on('participantDisconnected', participant => {
+        participant.tracks.forEach(publication => {
+          if (publication.track) {
+            detachTrack(publication.track);
+          }
+        });
+        setParticipants(prev => prev.filter(p => p !== participant.identity));
+      });
+
+      connectedRoom.on('disconnected', () => {
+        connectedRoom.localParticipant.tracks.forEach(publication => {
+          publication.track.stop();
+          publication.track.detach().forEach(el => el.remove());
+        });
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.innerHTML = '';
+        }
+        setJoined(false);
+        setRoom(null);
+        setParticipants([]);
+      });
+
+    } catch (err) {
+      setIsJoining(false);
+      // Enhanced error handling for new backend logic
+      if (err.response) {
+        const message = err.response.data.message?.toLowerCase() || "";
+        if (err.response.status === 404 && message.includes("room does not exist")) {
+          alert("🚫 Room does not exist. Please use a valid scheduled meeting link.");
+        } else if (err.response.status === 400 && message.includes("not active")) {
+          alert("🚫 Room is not active yet. Please wait for it to be created.");
+        } else if (message) {
+          alert(`🚫 ${err.response.data.message}`);
+        } else {
+          alert("🚫 Unable to join the room.");
+        }
       } else {
         alert("🚫 Unable to join the room.");
       }
-    } else {
-      alert("🚫 Unable to join the room.");
     }
-  }
-};
+  };
 
 
   const leaveRoom = () => {
-  if (room) {
-    room.localParticipant.tracks.forEach(publication => {
-      const track = publication.track;
-      if (track && typeof track.stop === 'function') {
-        track.stop();
-        track.detach().forEach(el => el.remove());
+    if (room) {
+      room.localParticipant.tracks.forEach(publication => {
+        const track = publication.track;
+        if (track && typeof track.stop === 'function') {
+          track.stop();
+          track.detach().forEach(el => el.remove());
+        }
+      });
+      room.disconnect();
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.innerHTML = '';
       }
-    });
-    room.disconnect();
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.innerHTML = '';
+      if (localVideoRef.current) {
+        localVideoRef.current.innerHTML = '';
+      }
+      setRoom(null);
+      setJoined(false);
+      setParticipants([]);
+      navigate('/meeting-room');
     }
-    if (localVideoRef.current) {
-      localVideoRef.current.innerHTML = '';
-    }
-    setRoom(null);
-    setJoined(false);
-    setParticipants([]);
-    navigate('/meeting-room');
-  }
-};
+  };
 
   const toggleAudio = () => {
     if (localAudioTrackRef.current) {
@@ -236,142 +275,142 @@ const MeetingRoom = () => {
     }
   };
 
-   const attachTrack = (track, identity) => {
-  if (track.kind === 'video' || track.kind === 'audio') {
-    const element = track.attach();
-    if (track.kind === 'video' && identity) {
-      element.dataset.identity = identity;
-      element.style.cursor = 'pointer';
-    }
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.appendChild(element);
-    }
-  }
-};
-const detachTrack = (track) => {
-  track.detach().forEach(el => el.remove());
-};
-
-
-// Helper to render enlarged video with thumbnails
-// Helper to check if a participant (or local) is muted
-const isAudioEnabled = (who) => {
-  if (who === 'local') {
-    return audioEnabled;
-  }
-  if (room) {
-    const participant = Array.from(room.participants.values()).find(p => p.identity === who);
-    if (participant) {
-      const audioPub = Array.from(participant.audioTracks.values())[0];
-      if (audioPub && audioPub.track) {
-        return audioPub.track.isEnabled;
+  const attachTrack = (track, identity) => {
+    if (track.kind === 'video' || track.kind === 'audio') {
+      const element = track.attach();
+      if (track.kind === 'video' && identity) {
+        element.dataset.identity = identity;
+        element.style.cursor = 'pointer';
+      }
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.appendChild(element);
       }
     }
-  }
-  return false;
-};
+  };
+  const detachTrack = (track) => {
+    track.detach().forEach(el => el.remove());
+  };
 
-const EnlargedVideoModal = () => {
-  if (!enlargedVideo) return null;
 
-  // Helper to get video element for a participant
-  const getVideoElement = (who) => {
-    let videoElement = null;
-    if (who === 'local' && localVideoTrackRef.current) {
-      videoElement = localVideoTrackRef.current.attach();
-      videoElement.style.width = '100%';
-      videoElement.style.height = '100%';
-      videoElement.style.objectFit = 'contain';
-      videoElement.style.transform = 'scaleX(-1)';
-    } else if (room && who !== 'local') {
-      const participant = Array.from(room.participants.values()).find(
-        p => p.identity === who
-      );
+  // Helper to render enlarged video with thumbnails
+  // Helper to check if a participant (or local) is muted
+  const isAudioEnabled = (who) => {
+    if (who === 'local') {
+      return audioEnabled;
+    }
+    if (room) {
+      const participant = Array.from(room.participants.values()).find(p => p.identity === who);
       if (participant) {
-        const videoPub = Array.from(participant.videoTracks.values())[0];
-        if (videoPub && videoPub.track) {
-          videoElement = videoPub.track.attach();
-          videoElement.style.width = '100%';
-          videoElement.style.height = '100%';
-          videoElement.style.objectFit = 'contain';
-          videoElement.style.transform = 'scaleX(-1)';
+        const audioPub = Array.from(participant.audioTracks.values())[0];
+        if (audioPub && audioPub.track) {
+          return audioPub.track.isEnabled;
         }
       }
     }
-    return videoElement;
+    return false;
   };
 
-  // Collect all video identities
-  const remoteIdentities = room ? Array.from(room.participants.values()).map(p => p.identity) : [];
-  const allVideos = ['local', ...remoteIdentities];
+  const EnlargedVideoModal = () => {
+    if (!enlargedVideo) return null;
 
-  // Main enlarged video
-  const mainVideo = getVideoElement(enlargedVideo);
+    // Helper to get video element for a participant
+    const getVideoElement = (who) => {
+      let videoElement = null;
+      if (who === 'local' && localVideoTrackRef.current) {
+        videoElement = localVideoTrackRef.current.attach();
+        videoElement.style.width = '100%';
+        videoElement.style.height = '100%';
+        videoElement.style.objectFit = 'contain';
+        videoElement.style.transform = 'scaleX(-1)';
+      } else if (room && who !== 'local') {
+        const participant = Array.from(room.participants.values()).find(
+          p => p.identity === who
+        );
+        if (participant) {
+          const videoPub = Array.from(participant.videoTracks.values())[0];
+          if (videoPub && videoPub.track) {
+            videoElement = videoPub.track.attach();
+            videoElement.style.width = '100%';
+            videoElement.style.height = '100%';
+            videoElement.style.objectFit = 'contain';
+            videoElement.style.transform = 'scaleX(-1)';
+          }
+        }
+      }
+      return videoElement;
+    };
 
-  // Thumbnails (all except enlarged)
-  const thumbnails = allVideos.filter(id => id !== enlargedVideo);
+    // Collect all video identities
+    const remoteIdentities = room ? Array.from(room.participants.values()).map(p => p.identity) : [];
+    const allVideos = ['local', ...remoteIdentities];
 
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-[100]"
-      onClick={() => setEnlargedVideo(null)}
-    >
+    // Main enlarged video
+    const mainVideo = getVideoElement(enlargedVideo);
+
+    // Thumbnails (all except enlarged)
+    const thumbnails = allVideos.filter(id => id !== enlargedVideo);
+
+    return (
       <div
-        className="bg-black rounded-2xl shadow-2xl flex flex-col items-center justify-center relative"
-        style={{ width: '80vw', height: '75vh', maxWidth: 900, maxHeight: 700 }}
-        onClick={e => e.stopPropagation()}
+        className="fixed inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-[100]"
+        onClick={() => setEnlargedVideo(null)}
       >
-        {/* Main Enlarged Video */}
-        <div style={{ width: '100%', height: '80%', position: 'relative' }} className="flex items-center justify-center">
-          {mainVideo && (
-            <div style={{ width: '100%', height: '100%' }} ref={el => el && el.appendChild(mainVideo)} />
-          )}
-          {/* Mute/Unmute Icon for enlarged */}
-          <div className="absolute top-4 left-4 bg-white/80 rounded-full p-2 shadow">
-            {isAudioEnabled(enlargedVideo) ? (
-              <FaMicrophone  className="text-green-600 text-2xl" title="Unmuted" />
-            ) : (
-              <MdMicOff   className="text-red-600 text-2xl" title="Muted" />
-            )}
-          </div>
-        </div>
-        {/* Thumbnails */}
-        <div className="flex gap-4 mt-4 px-4 w-full justify-center">
-          {thumbnails.map(id => {
-            const thumb = getVideoElement(id);
-            return (
-              <div
-                key={id}
-                className="relative rounded-lg border-2 border-indigo-300 bg-black cursor-pointer"
-                style={{ width: 120, height: 90, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                onClick={() => setEnlargedVideo(id)}
-                title={id === 'local' ? 'You' : id}
-              >
-                {thumb && (
-                  <div style={{ width: '100%', height: '100%' }} ref={el => el && el.appendChild(thumb)} />
-                )}
-                {/* Mute/Unmute Icon for thumbnail */}
-                <div className="absolute top-2 left-2 bg-white/80 rounded-full p-1 shadow">
-                  {isAudioEnabled(id) ? (
-                    <FaMicrophone  className="text-green-600 text-base" title="Unmuted" />
-                  ) : (
-                    <MdMicOff  className="text-red-600 text-base" title="Muted" />
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <button
-          onClick={() => setEnlargedVideo(null)}
-          className="absolute top-4 right-4 bg-white text-black rounded-full px-4 py-2 font-bold shadow hover:bg-gray-200"
+        <div
+          className="bg-black rounded-2xl shadow-2xl flex flex-col items-center justify-center relative"
+          style={{ width: '80vw', height: '75vh', maxWidth: 900, maxHeight: 700 }}
+          onClick={e => e.stopPropagation()}
         >
-          Close
-        </button>
+          {/* Main Enlarged Video */}
+          <div style={{ width: '100%', height: '80%', position: 'relative' }} className="flex items-center justify-center">
+            {mainVideo && (
+              <div style={{ width: '100%', height: '100%' }} ref={el => el && el.appendChild(mainVideo)} />
+            )}
+            {/* Mute/Unmute Icon for enlarged */}
+            <div className="absolute top-4 left-4 bg-white/80 rounded-full p-2 shadow">
+              {isAudioEnabled(enlargedVideo) ? (
+                <FaMicrophone className="text-green-600 text-2xl" title="Unmuted" />
+              ) : (
+                <MdMicOff className="text-red-600 text-2xl" title="Muted" />
+              )}
+            </div>
+          </div>
+          {/* Thumbnails */}
+          <div className="flex gap-4 mt-4 px-4 w-full justify-center">
+            {thumbnails.map(id => {
+              const thumb = getVideoElement(id);
+              return (
+                <div
+                  key={id}
+                  className="relative rounded-lg border-2 border-indigo-300 bg-black cursor-pointer"
+                  style={{ width: 120, height: 90, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onClick={() => setEnlargedVideo(id)}
+                  title={id === 'local' ? 'You' : id}
+                >
+                  {thumb && (
+                    <div style={{ width: '100%', height: '100%' }} ref={el => el && el.appendChild(thumb)} />
+                  )}
+                  {/* Mute/Unmute Icon for thumbnail */}
+                  <div className="absolute top-2 left-2 bg-white/80 rounded-full p-1 shadow">
+                    {isAudioEnabled(id) ? (
+                      <FaMicrophone className="text-green-600 text-base" title="Unmuted" />
+                    ) : (
+                      <MdMicOff className="text-red-600 text-base" title="Muted" />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => setEnlargedVideo(null)}
+            className="absolute top-4 right-4 bg-white text-black rounded-full px-4 py-2 font-bold shadow hover:bg-gray-200"
+          >
+            Close
+          </button>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   // Attach local video after joining
   useEffect(() => {
@@ -649,9 +688,8 @@ const EnlargedVideoModal = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full max-w-6xl">
               {/* Local video */}
               <div
-                className={`flex flex-col items-center bg-white/80 rounded-3xl border-4 border-indigo-300 shadow-2xl p-6 transition-all duration-300 ${
-                  enlargedVideo && enlargedVideo !== 'local' ? 'scale-75 opacity-60 pointer-events-none' : 'scale-100 opacity-100'
-                }`}
+                className={`flex flex-col items-center bg-white/80 rounded-3xl border-4 border-indigo-300 shadow-2xl p-6 transition-all duration-300 ${enlargedVideo && enlargedVideo !== 'local' ? 'scale-75 opacity-60 pointer-events-none' : 'scale-100 opacity-100'
+                  }`}
                 style={{ zIndex: enlargedVideo === 'local' ? 50 : 1 }}
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -674,18 +712,17 @@ const EnlargedVideoModal = () => {
                   {/* Mute/Unmute Icon */}
                   <div className="absolute top-2 left-2 bg-white/80 rounded-full p-2 shadow">
                     {audioEnabled ? (
-                      <FaMicrophone  className="text-green-600 text-xl" title="Unmuted" />
+                      <FaMicrophone className="text-green-600 text-xl" title="Unmuted" />
                     ) : (
-                      <MdMicOff  className="text-red-600 text-xl" title="Muted" />
+                      <MdMicOff className="text-red-600 text-xl" title="Muted" />
                     )}
                   </div>
                 </div>
               </div>
               {/* Remote videos */}
               <div
-                className={`flex flex-col items-center bg-white/80 rounded-3xl border-4 border-blue-200 shadow-2xl p-6 transition-all duration-300 ${
-                  enlargedVideo && enlargedVideo !== 'local' ? 'scale-100 opacity-100 z-50' : (enlargedVideo ? 'scale-75 opacity-60 pointer-events-none' : 'scale-100 opacity-100')
-                }`}
+                className={`flex flex-col items-center bg-white/80 rounded-3xl border-4 border-blue-200 shadow-2xl p-6 transition-all duration-300 ${enlargedVideo && enlargedVideo !== 'local' ? 'scale-100 opacity-100 z-50' : (enlargedVideo ? 'scale-75 opacity-60 pointer-events-none' : 'scale-100 opacity-100')
+                  }`}
                 style={{ zIndex: enlargedVideo && enlargedVideo !== 'local' ? 50 : 1 }}
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -715,9 +752,9 @@ const EnlargedVideoModal = () => {
                       <div key={participant.identity} className="absolute" style={{ pointerEvents: "none" }}>
                         <div className="absolute top-2 left-2 bg-white/80 rounded-full p-2 shadow z-10">
                           {isAudioEnabled(participant.identity) ? (
-                            <FaMicrophone  className="text-green-600 text-xl" title="Unmuted" />
+                            <FaMicrophone className="text-green-600 text-xl" title="Unmuted" />
                           ) : (
-                            <MdMicOff  className="text-red-600 text-xl" title="Muted" />
+                            <MdMicOff className="text-red-600 text-xl" title="Muted" />
                           )}
                         </div>
                       </div>
@@ -749,7 +786,14 @@ const EnlargedVideoModal = () => {
               </svg>
               Chat
             </h3>
-            <div className="h-64 overflow-y-auto mb-4 bg-indigo-50 rounded-xl p-4 text-left text-base shadow-inner flex flex-col gap-2" style={{ minHeight: 120 }}>
+            <div
+              className="h-64 overflow-y-auto mb-4 bg-indigo-50 rounded-xl p-4 text-left text-base shadow-inner flex flex-col gap-2"
+              style={{ minHeight: 120 }}
+              onContextMenu={e => e.preventDefault()}
+              onCopy={e => e.preventDefault()}
+              onCut={e => e.preventDefault()}
+              onPaste={e => e.preventDefault()}
+            >
               {chatMessages.length === 0 && (
                 <div className="text-gray-400 italic text-center mt-10">No messages yet.</div>
               )}
@@ -760,15 +804,27 @@ const EnlargedVideoModal = () => {
                 >
                   <div
                     className={`max-w-[70%] px-4 py-2 rounded-2xl shadow
-            ${msg.sender === identity || msg.sender === 'You'
-              ? 'bg-indigo-600 text-white rounded-br-none'
-              : 'bg-white text-indigo-800 border border-indigo-200 rounded-bl-none'
-            }`}
+                    ${msg.sender === identity || msg.sender === 'You'
+                        ? 'bg-indigo-600 text-white rounded-br-none'
+                        : 'bg-white text-indigo-800 border border-indigo-200 rounded-bl-none'
+                      }`}
                   >
                     <div className="text-xs font-semibold mb-1 opacity-70">
                       {msg.sender === identity || msg.sender === 'You' ? 'You' : msg.sender}
                     </div>
-                    <div className="break-words">{msg.text}</div>
+                    {msg.type === 'file' ? (
+                      <a
+                        href={msg.fileData}
+                        download={msg.fileName}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-white-700 underline break-all"
+                      >
+                        📎 {msg.fileName}
+                      </a>
+                    ) : (
+                      <div className="break-words">{msg.text}</div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -787,11 +843,23 @@ const EnlargedVideoModal = () => {
                 onKeyDown={e => e.key === 'Enter' && sendMessage()}
                 placeholder="Type a message..."
                 className="flex-1 px-4 py-3 rounded-xl border-2 border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition text-lg"
+                onContextMenu={e => e.preventDefault()}
+                onCopy={e => e.preventDefault()}
+                onCut={e => e.preventDefault()}
+                onPaste={e => e.preventDefault()}
+                autoComplete="off"
+              />
+              <input
+                type="file"
+                accept="*"
+                onChange={handleFileSend}
+                className="block w-32 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                style={{ maxWidth: 120, overflow: 'hidden' }} 
               />
               <button
                 type="submit"
                 disabled={!message.trim()}
-                className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white font-bold px-6 py-3 rounded-xl transition text-lg"
+                className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white font-bold px-6 py-2 rounded-xl transition text-sm"
               >
                 Send
               </button>
